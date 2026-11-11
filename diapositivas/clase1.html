@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>clase1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1115;
+    --surface: #171a21;
+    --surface-2: #1f232c;
+    --text: #e9ecf1;
+    --muted: #9aa3b2;
+    --accent: #f7df1e;
+    --accent-ink: #1a1a1a;
+    --line: #2a2f3a;
+    --blue: #7cb7ff;
+    --green: #8fd694;
+    --pink: #ff8fb1;
+    --orange: #ffb86b;
+    --font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: #07080a;
+    color: var(--text);
+    font-family: var(--font);
+    overflow: hidden;
+  }
+
+  /* Escenario 16:9 escalado al viewport */
+  #viewport { position: fixed; inset: 0; display: grid; place-items: center; }
+  #stage {
+    width: 1280px; height: 720px;
+    position: relative;
+    transform-origin: center center;
+    background: var(--bg);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 30px 80px rgba(0,0,0,.5);
+  }
+
+  .slide {
+    position: absolute; inset: 0;
+    padding: 64px 88px 72px;
+    display: flex; flex-direction: column;
+    opacity: 0; visibility: hidden;
+    transform: translateX(24px);
+    transition: opacity .35s ease, transform .35s ease, visibility .35s;
+  }
+  .slide.active { opacity: 1; visibility: visible; transform: none; }
+  .slide.prev { transform: translateX(-24px); }
+
+  .notes { display: none; }
+
+  /* Tipografía */
+  .kicker {
+    font-family: var(--mono);
+    font-size: 15px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 14px;
+  }
+  h1 { font-size: 84px; line-height: 1.02; font-weight: 800; letter-spacing: -.03em; }
+  h2 { font-size: 48px; line-height: 1.1; font-weight: 800; letter-spacing: -.02em; margin-bottom: 28px; }
+  h3 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+  p, li { font-size: 24px; line-height: 1.45; color: var(--text); }
+  .muted { color: var(--muted); }
+  .hl { color: var(--accent); }
+  ul.list { list-style: none; display: grid; gap: 14px; }
+  ul.list li { padding-left: 30px; position: relative; }
+  ul.list li::before {
+    content: ""; position: absolute; left: 0; top: .62em;
+    width: 12px; height: 12px; background: var(--accent); border-radius: 2px;
+  }
+  .small, .small li { font-size: 20px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; flex: 1; align-items: start; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 14px; padding: 24px 26px;
+  }
+  .card p, .card li { font-size: 19px; color: var(--muted); }
+  .card .year { font-family: var(--mono); color: var(--accent); font-size: 16px; margin-bottom: 6px; display: block; }
+
+  .big-num {
+    font-size: 180px; font-weight: 800; line-height: .9; color: var(--accent);
+    letter-spacing: -.05em;
+  }
+
+  /* Código */
+  pre {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 14px; padding: 22px 26px;
+    font-family: var(--mono); font-size: 19px; line-height: 1.6;
+    color: var(--text); overflow: hidden;
+  }
+  pre .t { display: block; font-size: 13px; color: var(--muted); margin-bottom: 10px; letter-spacing: .08em; text-transform: uppercase; }
+  .k { color: var(--pink); }
+  .s { color: var(--green); }
+  .f { color: var(--blue); }
+  .c { color: #6b7385; font-style: italic; }
+  .n { color: var(--orange); }
+
+  /* Portada */
+  .cover { justify-content: center; }
+  .cover .badge {
+    width: 132px; height: 132px; background: var(--accent); color: var(--accent-ink);
+    font-weight: 800; font-size: 64px; display: grid; place-items: end end;
+    padding: 0 14px 6px 0; border-radius: 6px; margin-bottom: 40px; letter-spacing: -.02em;
+  }
+  .cover h1 span { color: var(--accent); }
+  .cover p { margin-top: 22px; font-size: 26px; color: var(--muted); max-width: 820px; }
+  .cover .meta { position: absolute; bottom: 64px; left: 88px; font-family: var(--mono); font-size: 16px; color: var(--muted); }
+
+  /* Sección */
+  .section { justify-content: center; background:
+    radial-gradient(1200px 500px at 85% 110%, rgba(247,223,30,.14), transparent 60%), var(--bg); }
+  .section .num { font-family: var(--mono); color: var(--accent); font-size: 22px; margin-bottom: 16px; }
+
+  /* Comparativa */
+  table { width: 100%; border-collapse: collapse; font-size: 21px; }
+  th, td { text-align: left; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+  th { font-family: var(--mono); font-size: 15px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  td:first-child { color: var(--muted); }
+
+  /* Línea de tiempo */
+  .timeline { position: relative; margin-top: 40px; }
+  .timeline::before {
+    content: ""; position: absolute; left: 0; right: 0; top: 52px; height: 3px; background: var(--line);
+  }
+  .tl-row { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; position: relative; }
+  .tl-item { text-align: left; }
+  .tl-item .y { font-family: var(--mono); font-size: 20px; color: var(--accent); font-weight: 600; height: 36px; }
+  .tl-item .dot { width: 16px; height: 16px; border-radius: 50%; background: var(--accent); border: 4px solid var(--bg); margin: 0 0 18px -2px; box-sizing: content-box; }
+  .tl-item .l { font-size: 17px; line-height: 1.35; color: var(--text); }
+  .tl-item .l small { display: block; color: var(--muted); font-size: 15px; margin-top: 4px; }
+
+  /* Etiquetas ES */
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; }
+  .chip {
+    font-family: var(--mono); font-size: 16px; padding: 7px 12px; border-radius: 8px;
+    background: var(--surface-2); border: 1px solid var(--line); color: var(--text);
+  }
+  .chip b { color: var(--accent); font-weight: 600; }
+
+  .quote {
+    font-size: 40px; line-height: 1.3; font-weight: 700; letter-spacing: -.01em;
+    border-left: 6px solid var(--accent); padding-left: 32px; max-width: 1000px;
+  }
+  .quote cite { display: block; margin-top: 22px; font-size: 20px; font-style: normal; color: var(--muted); font-weight: 500; }
+
+  .stages { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-top: 8px; }
+  .stage { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .stage b { font-family: var(--mono); color: var(--accent); font-size: 18px; display: block; margin-bottom: 6px; }
+  .stage span { font-size: 16px; color: var(--muted); line-height: 1.35; display: block; }
+
+  /* Pie de diapositiva */
+  .footer {
+    position: absolute; left: 88px; right: 88px; bottom: 26px;
+    display: flex; justify-content: space-between;
+    font-family: var(--mono); font-size: 13px; color: var(--muted);
+  }
+  #progress { position: absolute; left: 0; bottom: 0; height: 4px; background: var(--accent); transition: width .35s ease; }
+
+  /* Controles */
+  #hud {
+    position: fixed; right: 16px; bottom: 16px; display: flex; gap: 8px; z-index: 10;
+    font-family: var(--mono); font-size: 13px; color: #8a92a1;
+  }
+  #hud button {
+    background: #1b1f27; color: #cfd5df; border: 1px solid #2c323d; border-radius: 8px;
+    padding: 8px 12px; font: inherit; cursor: pointer;
+  }
+  #hud button:hover { border-color: var(--accent); color: var(--accent); }
+
+  #notes-panel {
+    position: fixed; left: 16px; right: 16px; bottom: 64px; max-width: 900px; margin: 0 auto;
+    background: rgba(20,23,29,.97); border: 1px solid #2c323d; border-radius: 12px;
+    padding: 18px 22px; z-index: 9; display: none;
+    font-size: 16px; line-height: 1.55; color: #d4d9e2;
+  }
+  #notes-panel.open { display: block; }
+  #notes-panel .h { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 12px; color: var(--accent); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .1em; }
+
+  @media print {
+    body { overflow: visible; background: #fff; }
+    #hud, #notes-panel { display: none !important; }
+    #viewport { position: static; display: block; }
+    #stage { transform: none !important; box-shadow: none; border-radius: 0; height: auto; overflow: visible; background: none; }
+    .slide { position: relative; opacity: 1; visibility: visible; transform: none; width: 1280px; height: 720px; page-break-after: always; background: var(--bg); }
+  }
+</style>
+</head>
+<body>
+<div id="viewport">
+<div id="stage">
+
+  <!-- 1. Portada -->
+  <section class="slide cover">
+    <div class="badge">JS</div>
+    <div class="kicker">Clase 1 · Fundamentos</div>
+    <h1>La historia de<br><span>JavaScript</span></h1>
+    <p>De un prototipo escrito en 10 días al lenguaje que hoy corre en navegadores, servidores, móviles y escritorio.</p>
+    <div class="meta">USIP · Curso de JavaScript · ~20 min</div>
+    <div class="notes">(0:00 – 0:45) Bienvenida. Presentar el objetivo: entender de dónde viene JavaScript para entender por qué es como es — sus rarezas, su compatibilidad hacia atrás y su ecosistema.</div>
+  </section>
+
+  <!-- 2. Agenda -->
+  <section class="slide">
+    <div class="kicker">Agenda</div>
+    <h2>Lo que veremos hoy</h2>
+    <div class="grid-2">
+      <ul class="list">
+        <li><span class="hl">1995</span> — El nacimiento en Netscape</li>
+        <li><span class="hl">1996–1999</span> — Guerra de navegadores y estandarización</li>
+        <li><span class="hl">2000–2008</span> — Años oscuros, Ajax y jQuery</li>
+      </ul>
+      <ul class="list">
+        <li><span class="hl">2008–2009</span> — V8, Node.js y ES5</li>
+        <li><span class="hl">2015</span> — ES6: la gran renovación</li>
+        <li><span class="hl">Hoy</span> — Ecosistema, TC39 y el futuro</li>
+      </ul>
+    </div>
+    <div class="notes">(0:45 – 1:30) Recorrer la agenda rápidamente. Seis etapas, unos 3 minutos cada una.</div>
+  </section>
+
+  <!-- 3. Sección -->
+  <section class="slide section">
+    <div class="num">01 /</div>
+    <h1>El nacimiento<br><span class="hl">1995</span></h1>
+    <div class="notes">(1:30) Transición. Pregunta al grupo: ¿alguien sabe cuánto tiempo tomó crear la primera versión de JavaScript?</div>
+  </section>
+
+  <!-- 4. La web en 1995 -->
+  <section class="slide">
+    <div class="kicker">Contexto</div>
+    <h2>La web de 1995 era estática</h2>
+    <div class="grid-2">
+      <ul class="list">
+        <li>Páginas de <span class="hl">solo HTML</span>: texto, enlaces e imágenes</li>
+        <li>Cualquier validación de formulario requería un viaje al servidor</li>
+        <li><b>Netscape Navigator</b> dominaba con casi el 80% del mercado</li>
+        <li>Netscape quería un <span class="hl">lenguaje de scripting</span> sencillo, para diseñadores y aficionados</li>
+      </ul>
+      <div class="card">
+        <span class="year">EL PLAN DE NETSCAPE</span>
+        <h3>Dos lenguajes, dos públicos</h3>
+        <p><b style="color:var(--text)">Java</b> (de Sun Microsystems) para los componentes "serios" — los applets.</p>
+        <p style="margin-top:12px"><b style="color:var(--text)">Un lenguaje ligero</b>, embebido en el HTML, para "pegar" piezas e interactuar con la página.</p>
+      </div>
+    </div>
+    <div class="notes">(1:30 – 3:00) Imaginar llenar un formulario, enviarlo, esperar varios segundos con un módem de 28.8 kbps y recibir "campo email inválido". Ese era el problema. Netscape quería algo que corriera en el navegador del usuario.</div>
+  </section>
+
+  <!-- 5. 10 días -->
+  <section class="slide">
+    <div class="kicker">Mayo de 1995</div>
+    <div class="grid-2" style="align-items:center">
+      <div>
+        <div class="big-num">10</div>
+        <p style="font-size:34px;font-weight:700;margin-top:8px">días</p>
+        <p class="muted" style="margin-top:12px">Lo que tardó Brendan Eich en escribir el primer prototipo.</p>
+      </div>
+      <div>
+        <h3 style="font-size:28px;margin-bottom:16px">Brendan Eich</h3>
+        <ul class="list small">
+          <li>Contratado por Netscape en abril de 1995</li>
+          <li>Inspiración: <b>Scheme</b> (funciones de primera clase), <b>Self</b> (prototipos) y <b>Java</b> (sintaxis)</li>
+          <li>Más tarde cofundó <b>Mozilla</b> y creó el navegador <b>Brave</b></li>
+        </ul>
+      </div>
+    </div>
+    <div class="notes">(3:00 – 4:15) Eich quería hacer "Scheme en el navegador", pero la dirección pidió que "se pareciera a Java". El resultado mezcla las tres influencias. Las prisas explican algunas rarezas que todavía arrastramos (typeof null === "object").</div>
+  </section>
+
+  <!-- 6. Nombres -->
+  <section class="slide">
+    <div class="kicker">Un nombre, tres intentos</div>
+    <h2>Mocha → LiveScript → JavaScript</h2>
+    <div class="grid-3">
+      <div class="card">
+        <span class="year">MAYO 1995</span>
+        <h3>Mocha</h3>
+        <p>Nombre interno elegido por Marc Andreessen, cofundador de Netscape.</p>
+      </div>
+      <div class="card">
+        <span class="year">SEPTIEMBRE 1995</span>
+        <h3>LiveScript</h3>
+        <p>Así se lanzó en la beta de Netscape Navigator 2.0.</p>
+      </div>
+      <div class="card" style="border-color:var(--accent)">
+        <span class="year">DICIEMBRE 1995</span>
+        <h3>JavaScript</h3>
+        <p>Renombrado tras la alianza con Sun. Una decisión de <b style="color:var(--accent)">marketing</b> para aprovechar la fama de Java.</p>
+      </div>
+    </div>
+    <p class="muted" style="margin-top:32px">Dato: la marca "JavaScript" hoy pertenece a <b style="color:var(--text)">Oracle</b>, que la heredó al comprar Sun en 2010.</p>
+    <div class="notes">(4:15 – 5:15) El nombre "JavaScript" fue puro marketing: Java estaba de moda. Por eso el estándar oficial se llama ECMAScript — nadie podía usar libremente la marca.</div>
+  </section>
+
+  <!-- 7. Java vs JS -->
+  <section class="slide">
+    <div class="kicker">Aclaración importante</div>
+    <h2>Java ≠ JavaScript</h2>
+    <table>
+      <thead><tr><th></th><th>Java</th><th>JavaScript</th></tr></thead>
+      <tbody>
+        <tr><td>Creado por</td><td>Sun Microsystems (James Gosling)</td><td>Netscape (Brendan Eich)</td></tr>
+        <tr><td>Tipado</td><td>Estático</td><td>Dinámico</td></tr>
+        <tr><td>Ejecución</td><td>Compilado a bytecode (JVM)</td><td>Interpretado / compilado JIT por el motor</td></tr>
+        <tr><td>Objetos</td><td>Basado en clases</td><td>Basado en prototipos</td></tr>
+        <tr><td>Uso original</td><td>Aplicaciones y applets</td><td>Scripts dentro de páginas web</td></tr>
+      </tbody>
+    </table>
+    <p class="muted" style="margin-top:28px">"Java es a JavaScript lo que <i>car</i> es a <i>carpet</i>" — se parecen solo en el nombre.</p>
+    <div class="notes">(5:15 – 6:00) La confusión más común de los principiantes. Insistir: comparten parte de la sintaxis (llaves, if, for) por decisión de diseño, pero son lenguajes completamente diferentes.</div>
+  </section>
+
+  <!-- 8. Sección -->
+  <section class="slide section">
+    <div class="num">02 /</div>
+    <h1>Guerra de navegadores<br><span class="hl">y estandarización</span></h1>
+    <div class="notes">(6:00) Transición.</div>
+  </section>
+
+  <!-- 9. JScript -->
+  <section class="slide">
+    <div class="kicker">1996 · Microsoft entra en escena</div>
+    <h2>JScript y el caos de la compatibilidad</h2>
+    <div class="grid-2">
+      <ul class="list">
+        <li>Microsoft aplicó ingeniería inversa y lanzó <b>JScript</b> en <b>Internet Explorer 3</b> (agosto de 1996)</li>
+        <li>Dos implementaciones con comportamientos distintos</li>
+        <li>Nacen los letreros <i class="muted">"Mejor visto en Netscape"</i> o <i class="muted">"…en Internet Explorer"</i></li>
+      </ul>
+      <pre><span class="t">El código de la época</span><span class="k">if</span> (document.all) {
+  <span class="c">// Internet Explorer</span>
+  el = document.all[<span class="s">"menu"</span>];
+} <span class="k">else if</span> (document.layers) {
+  <span class="c">// Netscape</span>
+  el = document.layers[<span class="s">"menu"</span>];
+}</pre>
+    </div>
+    <div class="notes">(6:00 – 7:15) Mostrar el código: los desarrolladores tenían que escribir todo dos veces. Esto motivó a Netscape a buscar un estándar neutral.</div>
+  </section>
+
+  <!-- 10. ECMA -->
+  <section class="slide">
+    <div class="kicker">ECMA-262</div>
+    <h2>Nace ECMAScript</h2>
+    <p style="margin-bottom:28px">En noviembre de 1996 Netscape lleva el lenguaje a <b>Ecma International</b>. El comité <b class="hl">TC39</b> define el estándar <b>ECMA-262</b>.</p>
+    <div class="grid-3">
+      <div class="card"><span class="year">1997</span><h3>ES1</h3><p>Primera edición del estándar.</p></div>
+      <div class="card"><span class="year">1998</span><h3>ES2</h3><p>Ajustes editoriales para alinearse con ISO.</p></div>
+      <div class="card"><span class="year">1999</span><h3>ES3</h3><p>Expresiones regulares, <code>try/catch</code>, mejor manejo de strings. La base durante 10 años.</p></div>
+    </div>
+    <p class="muted" style="margin-top:28px"><b style="color:var(--text)">JavaScript</b> es la implementación más conocida; <b style="color:var(--text)">ECMAScript</b> es la especificación.</p>
+    <div class="notes">(7:15 – 8:30) Distinción clave: ECMAScript = el estándar (la receta); JavaScript = una implementación (el plato). Por eso hablamos de "ES5", "ES6", "ES2024".</div>
+  </section>
+
+  <!-- 11. ES4 / ES5 -->
+  <section class="slide">
+    <div class="kicker">2000 – 2009</div>
+    <h2>Una década de estancamiento</h2>
+    <div class="grid-2">
+      <div class="card">
+        <span class="year">2000 – 2008</span>
+        <h3>ES4: el estándar que nunca llegó</h3>
+        <p>Propuesta muy ambiciosa: clases, tipos estáticos, módulos… El comité no logró acuerdo y fue <b style="color:var(--pink)">abandonada en 2008</b>.</p>
+      </div>
+      <div class="card" style="border-color:var(--accent)">
+        <span class="year">DICIEMBRE 2009</span>
+        <h3>ES5: el acuerdo</h3>
+        <p><code>"use strict"</code>, <code>JSON</code> nativo, <code>forEach</code>, <code>map</code>, <code>filter</code>, <code>reduce</code>, getters y setters.</p>
+      </div>
+    </div>
+    <p class="muted" style="margin-top:28px">Mientras tanto, IE6 (2001) dominaba la web y casi no se actualizaba.</p>
+    <div class="notes">(8:30 – 9:30) Diez años sin cambios relevantes en el lenguaje. Pero, aunque el lenguaje no avanzaba, la forma de usarlo sí cambió radicalmente, como veremos ahora.</div>
+  </section>
+
+  <!-- 12. Sección -->
+  <section class="slide section">
+    <div class="num">03 /</div>
+    <h1>La web se vuelve<br><span class="hl">aplicación</span></h1>
+    <div class="notes">(9:30) Transición.</div>
+  </section>
+
+  <!-- 13. Ajax + jQuery -->
+  <section class="slide">
+    <div class="kicker">2004 – 2006</div>
+    <h2>Ajax y jQuery</h2>
+    <div class="grid-2">
+      <div>
+        <h3 class="hl">Ajax (2005)</h3>
+        <ul class="list small" style="margin-bottom:24px">
+          <li>Término acuñado por Jesse James Garrett</li>
+          <li>Usa <code>XMLHttpRequest</code> para pedir datos <b>sin recargar la página</b></li>
+          <li>Gmail (2004) y Google Maps (2005) demuestran el potencial</li>
+        </ul>
+        <h3 class="hl">jQuery (2006)</h3>
+        <ul class="list small">
+          <li>Creado por John Resig: <i>"write less, do more"</i></li>
+          <li>Ocultaba las diferencias entre navegadores</li>
+        </ul>
+      </div>
+      <pre><span class="t">jQuery</span>$(<span class="s">"#boton"</span>).<span class="f">click</span>(<span class="k">function</span> () {
+  $(<span class="s">".menu"</span>).<span class="f">fadeIn</span>();
+
+  $.<span class="f">get</span>(<span class="s">"/api/datos"</span>, <span class="k">function</span> (res) {
+    $(<span class="s">"#lista"</span>).<span class="f">html</span>(res);
+  });
+});</pre>
+    </div>
+    <div class="notes">(9:30 – 11:00) Ajax cambió la percepción de JS: dejó de ser "un juguete para efectos" y pasó a construir aplicaciones reales. jQuery llegó a usarse en la mayoría de los sitios web más visitados.</div>
+  </section>
+
+  <!-- 14. V8 + Node -->
+  <section class="slide">
+    <div class="kicker">2008 – 2010</div>
+    <h2>Velocidad y salto al servidor</h2>
+    <div class="grid-2">
+      <div>
+        <div class="card" style="margin-bottom:18px">
+          <span class="year">SEPTIEMBRE 2008</span>
+          <h3>Google Chrome + motor V8</h3>
+          <p>Compilación <b style="color:var(--text)">JIT</b> a código máquina. JavaScript pasa a ser muchas veces más rápido y desata una carrera de rendimiento entre navegadores.</p>
+        </div>
+        <div class="card">
+          <span class="year">2009 · 2010</span>
+          <h3>Node.js + npm</h3>
+          <p>Ryan Dahl toma V8 y lo saca del navegador. Con npm nace el mayor registro de paquetes del mundo.</p>
+        </div>
+      </div>
+      <pre><span class="t">Un servidor web con Node.js</span><span class="k">const</span> http = <span class="f">require</span>(<span class="s">"http"</span>);
+
+http.<span class="f">createServer</span>((req, res) => {
+  res.<span class="f">end</span>(<span class="s">"Hola desde el servidor"</span>);
+}).<span class="f">listen</span>(<span class="n">3000</span>);</pre>
+    </div>
+    <div class="notes">(11:00 – 12:30) Momento clave: por primera vez, un mismo lenguaje sirve para frontend y backend. Node usa un modelo asíncrono y no bloqueante, ideal para muchas conexiones simultáneas.</div>
+  </section>
+
+  <!-- 15. Sección -->
+  <section class="slide section">
+    <div class="num">04 /</div>
+    <h1>JavaScript<br><span class="hl">moderno</span></h1>
+    <div class="notes">(12:30) Transición.</div>
+  </section>
+
+  <!-- 16. ES6 -->
+  <section class="slide">
+    <div class="kicker">Junio 2015 · ES6 / ES2015</div>
+    <h2>La gran renovación</h2>
+    <div class="grid-2">
+      <pre><span class="t">Antes (ES5)</span><span class="k">var</span> nombre = <span class="s">"Ana"</span>;
+<span class="k">var</span> saludar = <span class="k">function</span> (n) {
+  <span class="k">return</span> <span class="s">"Hola, "</span> + n + <span class="s">"!"</span>;
+};
+<span class="k">function</span> <span class="f">Persona</span>(n) { <span class="k">this</span>.n = n; }</pre>
+      <pre><span class="t">Después (ES2015)</span><span class="k">const</span> nombre = <span class="s">"Ana"</span>;
+<span class="k">const</span> saludar = (n) => <span class="s">`Hola, ${n}!`</span>;
+
+<span class="k">class</span> <span class="f">Persona</span> {
+  <span class="f">constructor</span>(n) { <span class="k">this</span>.n = n; }
+}</pre>
+    </div>
+    <div class="chips" style="margin-top:22px">
+      <span class="chip">let / const</span><span class="chip">arrow functions</span><span class="chip">class</span>
+      <span class="chip">template literals</span><span class="chip">import / export</span><span class="chip">Promise</span>
+      <span class="chip">destructuring</span><span class="chip">spread / rest</span><span class="chip">Map / Set</span>
+    </div>
+    <div class="notes">(12:30 – 14:00) La actualización más grande de la historia del lenguaje. Mucho de lo que vamos a aprender en el curso viene de aquí. Comparar ambos bloques en voz alta.</div>
+  </section>
+
+  <!-- 17. Lanzamientos anuales + TC39 -->
+  <section class="slide">
+    <div class="kicker">2016 → hoy</div>
+    <h2>Una versión nueva cada año</h2>
+    <div class="chips" style="margin-bottom:30px">
+      <span class="chip"><b>ES2016</b> includes, **</span>
+      <span class="chip"><b>ES2017</b> async / await</span>
+      <span class="chip"><b>ES2018</b> spread en objetos</span>
+      <span class="chip"><b>ES2020</b> ?. y ??</span>
+      <span class="chip"><b>ES2022</b> await top-level, campos privados #</span>
+      <span class="chip"><b>ES2023</b> toSorted, findLast</span>
+      <span class="chip"><b>ES2024</b> Object.groupBy</span>
+      <span class="chip"><b>ES2025</b> métodos de Set, iteradores</span>
+    </div>
+    <h3 style="margin-bottom:12px">El proceso TC39: cómo llega una idea al lenguaje</h3>
+    <div class="stages">
+      <div class="stage"><b>Stage 0</b><span>Idea</span></div>
+      <div class="stage"><b>Stage 1</b><span>Propuesta formal</span></div>
+      <div class="stage"><b>Stage 2</b><span>Borrador de la sintaxis</span></div>
+      <div class="stage"><b>Stage 3</b><span>Candidata, se implementa</span></div>
+      <div class="stage"><b>Stage 4</b><span>Lista: entra al estándar</span></div>
+    </div>
+    <div class="notes">(14:00 – 15:30) Lección aprendida de ES4: cambios pequeños y frecuentes en vez de grandes saltos. Las propuestas son públicas en GitHub (tc39/proposals). Regla de oro del comité: "don't break the web" — nunca se rompe el código existente.</div>
+  </section>
+
+  <!-- 18. Ecosistema -->
+  <section class="slide">
+    <div class="kicker">Ecosistema</div>
+    <h2>JavaScript está en todas partes</h2>
+    <div class="grid-3">
+      <div class="card">
+        <span class="year">FRONTEND</span>
+        <h3>Frameworks</h3>
+        <p>AngularJS (2010), React (2013), Vue (2014), Svelte (2016)</p>
+      </div>
+      <div class="card">
+        <span class="year">BACKEND</span>
+        <h3>Runtimes</h3>
+        <p>Node.js (2009), Deno (2018), Bun (2022)</p>
+      </div>
+      <div class="card">
+        <span class="year">LENGUAJE</span>
+        <h3>TypeScript (2012)</h3>
+        <p>Microsoft agrega tipos estáticos sobre JavaScript.</p>
+      </div>
+      <div class="card">
+        <span class="year">MÓVIL</span>
+        <h3>Apps nativas</h3>
+        <p>React Native, Ionic</p>
+      </div>
+      <div class="card">
+        <span class="year">ESCRITORIO</span>
+        <h3>Electron</h3>
+        <p>VS Code, Slack, Discord</p>
+      </div>
+      <div class="card" style="border-color:var(--accent)">
+        <span class="year">POPULARIDAD</span>
+        <h3>N.º 1</h3>
+        <p>Más de una década como el lenguaje más usado en la encuesta de Stack Overflow.</p>
+      </div>
+    </div>
+    <div class="notes">(15:30 – 17:00) Preguntar qué apps de este listado usan a diario. Sorpresa habitual: VS Code está hecho con tecnologías web (Electron + TypeScript).</div>
+  </section>
+
+  <!-- 19. Línea de tiempo -->
+  <section class="slide">
+    <div class="kicker">Resumen</div>
+    <h2>Línea de tiempo</h2>
+    <div class="timeline">
+      <div class="tl-row">
+        <div class="tl-item"><div class="y">1995</div><div class="dot"></div><div class="l">Nace en Netscape<small>10 días</small></div></div>
+        <div class="tl-item"><div class="y">1997</div><div class="dot"></div><div class="l">ES1<small>ECMA-262</small></div></div>
+        <div class="tl-item"><div class="y">2005</div><div class="dot"></div><div class="l">Ajax<small>Gmail, Maps</small></div></div>
+        <div class="tl-item"><div class="y">2006</div><div class="dot"></div><div class="l">jQuery</div></div>
+        <div class="tl-item"><div class="y">2008</div><div class="dot"></div><div class="l">V8 / Chrome</div></div>
+        <div class="tl-item"><div class="y">2009</div><div class="dot"></div><div class="l">Node.js + ES5</div></div>
+        <div class="tl-item"><div class="y">2015</div><div class="dot"></div><div class="l">ES6<small>la gran renovación</small></div></div>
+        <div class="tl-item"><div class="y">2016+</div><div class="dot"></div><div class="l">Versión anual<small>ES2016 … ES2025</small></div></div>
+      </div>
+    </div>
+    <div class="quote" style="font-size:30px;margin-top:64px">
+      Siempre compatible hacia atrás: el código de 1996 todavía funciona hoy.
+    </div>
+    <div class="notes">(17:00 – 18:00) Recapitular las etapas. Recalcar la idea final: la compatibilidad hacia atrás explica tanto las rarezas del lenguaje como su longevidad.</div>
+  </section>
+
+  <!-- 20. Preguntas de repaso -->
+  <section class="slide">
+    <div class="kicker">Repaso rápido</div>
+    <h2>¿Qué recuerdas?</h2>
+    <ul class="list">
+      <li>¿Quién creó JavaScript, en qué empresa y en cuántos días?</li>
+      <li>¿Por qué se llama "JavaScript" si no tiene relación con Java?</li>
+      <li>¿Cuál es la diferencia entre ECMAScript y JavaScript?</li>
+      <li>¿Qué permitió hacer Node.js que antes no se podía?</li>
+      <li>Menciona tres novedades de ES6.</li>
+    </ul>
+    <div class="notes">(18:00 – 19:15) Preguntas abiertas al grupo. Respuestas: Brendan Eich, Netscape, 10 días · marketing por la alianza con Sun · estándar vs. implementación · ejecutar JS fuera del navegador (servidor) · let/const, arrow functions, clases, módulos, promesas, template literals.</div>
+  </section>
+
+  <!-- 21. Cierre -->
+  <section class="slide cover">
+    <div class="kicker">Próxima clase</div>
+    <h1>¡Manos al <span>código</span>!</h1>
+    <p>Configuramos el entorno, abrimos la consola del navegador y escribimos nuestras primeras líneas de JavaScript.</p>
+    <pre style="margin-top:36px;max-width:560px"><span class="f">console</span>.<span class="f">log</span>(<span class="s">"¡Hola, mundo!"</span>);</pre>
+    <div class="meta">¿Preguntas?</div>
+    <div class="notes">(19:15 – 20:00) Cierre y preguntas. Tarea opcional: abrir DevTools (F12) en cualquier página y escribir console.log("Hola") en la consola.</div>
+  </section>
+
+  <div class="footer"><span>Clase 1 · Historia de JavaScript</span><span id="counter"></span></div>
+  <div id="progress"></div>
+</div>
+</div>
+
+<div id="notes-panel"><div class="h"><span>Notas del orador</span><span id="clock">00:00</span></div><div id="notes-text"></div></div>
+<div id="hud">
+  <button id="btn-notes" title="Notas (N)">Notas</button>
+  <button id="btn-full" title="Pantalla completa (F)">⛶</button>
+  <button id="btn-prev" title="Anterior (←)">←</button>
+  <button id="btn-next" title="Siguiente (→)">→</button>
+</div>
+
+<script>
+  const slides = [...document.querySelectorAll(".slide")];
+  const stage = document.getElementById("stage");
+  const counter = document.getElementById("counter");
+  const progress = document.getElementById("progress");
+  const notesPanel = document.getElementById("notes-panel");
+  const notesText = document.getElementById("notes-text");
+  const clock = document.getElementById("clock");
+  let current = 0;
+  let startTime = null;
+
+  function fit() {
+    const s = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+    stage.style.transform = `scale(${s})`;
+  }
+
+  function show(i) {
+    current = Math.max(0, Math.min(slides.length - 1, i));
+    slides.forEach((el, idx) => {
+      el.classList.toggle("active", idx === current);
+      el.classList.toggle("prev", idx < current);
+    });
+    counter.textContent = `${current + 1} / ${slides.length}`;
+    progress.style.width = `${((current + 1) / slides.length) * 100}%`;
+    const n = slides[current].querySelector(".notes");
+    notesText.textContent = n ? n.textContent : "";
+    history.replaceState(null, "", `#${current + 1}`);
+    if (current > 0 && !startTime) startTime = Date.now();
+  }
+
+  function tick() {
+    if (!startTime) return;
+    const sec = Math.floor((Date.now() - startTime) / 1000);
+    clock.textContent = `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
+  }
+
+  function toggleFull() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+    else document.exitFullscreen?.();
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (["ArrowRight", "PageDown", " ", "Enter"].includes(e.key)) { e.preventDefault(); show(current + 1); }
+    else if (["ArrowLeft", "PageUp", "Backspace"].includes(e.key)) { e.preventDefault(); show(current - 1); }
+    else if (e.key === "Home") show(0);
+    else if (e.key === "End") show(slides.length - 1);
+    else if (e.key.toLowerCase() === "n") notesPanel.classList.toggle("open");
+    else if (e.key.toLowerCase() === "f") toggleFull();
+  });
+
+  let touchX = null;
+  document.addEventListener("touchstart", (e) => { touchX = e.touches[0].clientX; }, { passive: true });
+  document.addEventListener("touchend", (e) => {
+    if (touchX === null) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    if (Math.abs(dx) > 40) show(current + (dx < 0 ? 1 : -1));
+    touchX = null;
+  });
+
+  document.getElementById("btn-next").onclick = () => show(current + 1);
+  document.getElementById("btn-prev").onclick = () => show(current - 1);
+  document.getElementById("btn-notes").onclick = () => notesPanel.classList.toggle("open");
+  document.getElementById("btn-full").onclick = toggleFull;
+
+  window.addEventListener("resize", fit);
+  setInterval(tick, 1000);
+  fit();
+  show((parseInt(location.hash.slice(1), 10) || 1) - 1);
+</script>
+</body>
+</html>
