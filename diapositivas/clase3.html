@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>clase3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1115;
+    --surface: #171a21;
+    --surface-2: #1f232c;
+    --text: #e9ecf1;
+    --muted: #9aa3b2;
+    --accent: #f7df1e;
+    --accent-ink: #1a1a1a;
+    --line: #2a2f3a;
+    --blue: #7cb7ff;
+    --green: #8fd694;
+    --pink: #ff8fb1;
+    --orange: #ffb86b;
+    --font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: #07080a;
+    color: var(--text);
+    font-family: var(--font);
+    overflow: hidden;
+  }
+
+  /* Escenario 16:9 escalado al viewport */
+  #viewport { position: fixed; inset: 0; display: grid; place-items: center; }
+  #stage {
+    width: 1280px; height: 720px;
+    position: relative;
+    transform-origin: center center;
+    background: var(--bg);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 30px 80px rgba(0,0,0,.5);
+  }
+
+  .slide {
+    position: absolute; inset: 0;
+    padding: 64px 88px 72px;
+    display: flex; flex-direction: column;
+    opacity: 0; visibility: hidden;
+    transform: translateX(24px);
+    transition: opacity .35s ease, transform .35s ease, visibility .35s;
+  }
+  .slide.active { opacity: 1; visibility: visible; transform: none; }
+  .slide.prev { transform: translateX(-24px); }
+
+  .notes { display: none; }
+
+  /* Tipografía */
+  .kicker {
+    font-family: var(--mono);
+    font-size: 15px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 14px;
+  }
+  h1 { font-size: 84px; line-height: 1.02; font-weight: 800; letter-spacing: -.03em; }
+  h2 { font-size: 48px; line-height: 1.1; font-weight: 800; letter-spacing: -.02em; margin-bottom: 28px; }
+  h3 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+  p, li { font-size: 24px; line-height: 1.45; color: var(--text); }
+  .muted { color: var(--muted); }
+  .hl { color: var(--accent); }
+  ul.list { list-style: none; display: grid; gap: 14px; }
+  ul.list li { padding-left: 30px; position: relative; }
+  ul.list li::before {
+    content: ""; position: absolute; left: 0; top: .62em;
+    width: 12px; height: 12px; background: var(--accent); border-radius: 2px;
+  }
+  .small, .small li { font-size: 20px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; flex: 1; align-items: start; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 14px; padding: 24px 26px;
+  }
+  .card p, .card li { font-size: 19px; color: var(--muted); }
+  .card .year { font-family: var(--mono); color: var(--accent); font-size: 16px; margin-bottom: 6px; display: block; }
+
+  .big-num {
+    font-size: 180px; font-weight: 800; line-height: .9; color: var(--accent);
+    letter-spacing: -.05em;
+  }
+
+  /* Código */
+  pre {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 14px; padding: 22px 26px;
+    font-family: var(--mono); font-size: 19px; line-height: 1.6;
+    color: var(--text); overflow: hidden;
+  }
+  pre .t { display: block; font-size: 13px; color: var(--muted); margin-bottom: 10px; letter-spacing: .08em; text-transform: uppercase; }
+  .k { color: var(--pink); }
+  .s { color: var(--green); }
+  .f { color: var(--blue); }
+  .c { color: #6b7385; font-style: italic; }
+  .n { color: var(--orange); }
+
+  /* Portada */
+  .cover { justify-content: center; }
+  .cover .badge {
+    width: 132px; height: 132px; background: var(--accent); color: var(--accent-ink);
+    font-weight: 800; font-size: 64px; display: grid; place-items: end end;
+    padding: 0 14px 6px 0; border-radius: 6px; margin-bottom: 40px; letter-spacing: -.02em;
+  }
+  .cover h1 span { color: var(--accent); }
+  .cover p { margin-top: 22px; font-size: 26px; color: var(--muted); max-width: 820px; }
+  .cover .meta { position: absolute; bottom: 64px; left: 88px; font-family: var(--mono); font-size: 16px; color: var(--muted); }
+
+  /* Sección */
+  .section { justify-content: center; background:
+    radial-gradient(1200px 500px at 85% 110%, rgba(247,223,30,.14), transparent 60%), var(--bg); }
+  .section .num { font-family: var(--mono); color: var(--accent); font-size: 22px; margin-bottom: 16px; }
+
+  /* Comparativa */
+  table { width: 100%; border-collapse: collapse; font-size: 21px; }
+  th, td { text-align: left; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+  th { font-family: var(--mono); font-size: 15px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  td:first-child { color: var(--muted); }
+
+  /* Línea de tiempo */
+  .timeline { position: relative; margin-top: 40px; }
+  .timeline::before {
+    content: ""; position: absolute; left: 0; right: 0; top: 52px; height: 3px; background: var(--line);
+  }
+  .tl-row { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; position: relative; }
+  .tl-item { text-align: left; }
+  .tl-item .y { font-family: var(--mono); font-size: 20px; color: var(--accent); font-weight: 600; height: 36px; }
+  .tl-item .dot { width: 16px; height: 16px; border-radius: 50%; background: var(--accent); border: 4px solid var(--bg); margin: 0 0 18px -2px; box-sizing: content-box; }
+  .tl-item .l { font-size: 17px; line-height: 1.35; color: var(--text); }
+  .tl-item .l small { display: block; color: var(--muted); font-size: 15px; margin-top: 4px; }
+
+  /* Etiquetas ES */
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; }
+  .chip {
+    font-family: var(--mono); font-size: 16px; padding: 7px 12px; border-radius: 8px;
+    background: var(--surface-2); border: 1px solid var(--line); color: var(--text);
+  }
+  .chip b { color: var(--accent); font-weight: 600; }
+
+  .quote {
+    font-size: 40px; line-height: 1.3; font-weight: 700; letter-spacing: -.01em;
+    border-left: 6px solid var(--accent); padding-left: 32px; max-width: 1000px;
+  }
+  .quote cite { display: block; margin-top: 22px; font-size: 20px; font-style: normal; color: var(--muted); font-weight: 500; }
+
+  .stages { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-top: 8px; }
+  .stage { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .stage b { font-family: var(--mono); color: var(--accent); font-size: 18px; display: block; margin-bottom: 6px; }
+  .stage span { font-size: 16px; color: var(--muted); line-height: 1.35; display: block; }
+
+  /* Pie de diapositiva */
+  .footer {
+    position: absolute; left: 88px; right: 88px; bottom: 26px;
+    display: flex; justify-content: space-between;
+    font-family: var(--mono); font-size: 13px; color: var(--muted);
+  }
+  #progress { position: absolute; left: 0; bottom: 0; height: 4px; background: var(--accent); transition: width .35s ease; }
+
+  /* Controles */
+  #hud {
+    position: fixed; right: 16px; bottom: 16px; display: flex; gap: 8px; z-index: 10;
+    font-family: var(--mono); font-size: 13px; color: #8a92a1;
+  }
+  #hud button {
+    background: #1b1f27; color: #cfd5df; border: 1px solid #2c323d; border-radius: 8px;
+    padding: 8px 12px; font: inherit; cursor: pointer;
+  }
+  #hud button:hover { border-color: var(--accent); color: var(--accent); }
+
+  #notes-panel {
+    position: fixed; left: 16px; right: 16px; bottom: 64px; max-width: 900px; margin: 0 auto;
+    background: rgba(20,23,29,.97); border: 1px solid #2c323d; border-radius: 12px;
+    padding: 18px 22px; z-index: 9; display: none;
+    font-size: 16px; line-height: 1.55; color: #d4d9e2;
+  }
+  #notes-panel.open { display: block; }
+  #notes-panel .h { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 12px; color: var(--accent); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .1em; }
+
+  @media print {
+    body { overflow: visible; background: #fff; }
+    #hud, #notes-panel { display: none !important; }
+    #viewport { position: static; display: block; }
+    #stage { transform: none !important; box-shadow: none; border-radius: 0; height: auto; overflow: visible; background: none; }
+    .slide { position: relative; opacity: 1; visibility: visible; transform: none; width: 1280px; height: 720px; page-break-after: always; background: var(--bg); }
+  }
+
+  /* Añadidos clases 2–5 */
+  code { font-family: var(--mono); font-size: .86em; color: var(--accent); }
+  pre.sm { font-size: 16px; padding: 18px 22px; }
+  pre.xs { font-size: 15px; }
+  table.compact { font-size: 19px; }
+  table.compact th, table.compact td { padding: 11px 16px; }
+  td.ok { color: var(--green); } td.no { color: var(--pink); }
+  .stage + .stage { margin-top: 10px; }
+  .board { display: grid; grid-template-columns: repeat(3, 120px); gap: 10px; justify-content: end; }
+  .board span {
+    width: 120px; height: 120px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    display: grid; place-items: center; font-family: var(--font); font-size: 68px; font-weight: 800;
+  }
+  .board .x { color: var(--accent); }
+  .board .o { color: var(--blue); }
+</style>
+</head>
+<body>
+<div id="viewport">
+<div id="stage">
+
+  <!-- 1. Portada -->
+  <section class="slide cover">
+    <div class="badge">JS</div>
+    <div class="kicker">Clase 3 · Asincronía</div>
+    <h1>Síncrono vs<br><span>asíncrono</span></h1>
+    <p>Callbacks, promesas con <code>then / catch</code>, la forma moderna con <code>async / await</code> consumiendo una API real, y un primer vistazo a los formularios.</p>
+    <div class="meta">USIP · Curso de JavaScript · Clase 3</div>
+    <div class="notes">Bienvenida. Hoy respondemos una pregunta clave: ¿cómo hace JavaScript para esperar datos de internet sin congelar la página? API de práctica: jsonplaceholder.typicode.com (gratuita, sin registro).</div>
+  </section>
+
+  <!-- 2. Callbacks / orden superior -->
+  <section class="slide">
+    <div class="kicker">Continuamos con funciones</div>
+    <h2>Funciones que reciben funciones</h2>
+    <div class="grid-2">
+      <pre class="sm"><span class="t">Función de orden superior</span><span class="k">function</span> <span class="f">operar</span>(a, b, operacion) {
+  <span class="k">return</span> <span class="f">operacion</span>(a, b);
+}
+
+<span class="k">const</span> <span class="f">sumar</span> = (x, y) => x + y;
+<span class="k">const</span> <span class="f">multiplicar</span> = (x, y) => x * y;
+
+<span class="f">operar</span>(<span class="n">4</span>, <span class="n">2</span>, sumar);        <span class="c">// 6</span>
+<span class="f">operar</span>(<span class="n">4</span>, <span class="n">2</span>, multiplicar);  <span class="c">// 8</span>
+<span class="f">operar</span>(<span class="n">4</span>, <span class="n">2</span>, (x, y) => x - y); <span class="c">// 2</span></pre>
+      <ul class="list small">
+        <li>En JS las funciones son <b>valores</b>: se guardan en variables y se pasan como argumentos</li>
+        <li>Una función que recibe otra es una <b>función de orden superior</b></li>
+        <li>La función que se pasa se llama <b class="hl">callback</b></li>
+        <li>Ya los usamos: <code>map</code>, <code>filter</code>, <code>forEach</code></li>
+        <li>Los callbacks son la base de la asincronía</li>
+      </ul>
+    </div>
+    <div class="notes">Puente con la clase anterior. Observar que pasamos "sumar" sin paréntesis: pasamos la función, no su resultado. Si escribimos sumar() la estaríamos ejecutando.</div>
+  </section>
+
+  <!-- 3. Sync vs async -->
+  <section class="slide">
+    <div class="kicker">Cómo se ejecuta el código</div>
+    <h2>Síncrono vs asíncrono</h2>
+    <div class="grid-2">
+      <pre class="sm"><span class="t">Síncrono: línea por línea</span><span class="f">console</span>.<span class="f">log</span>(<span class="s">"1. Inicio"</span>);
+<span class="f">console</span>.<span class="f">log</span>(<span class="s">"2. Proceso"</span>);
+<span class="f">console</span>.<span class="f">log</span>(<span class="s">"3. Fin"</span>);
+
+<span class="c">// 1 → 2 → 3</span></pre>
+      <pre class="sm"><span class="t">Asíncrono: no bloquea</span><span class="f">console</span>.<span class="f">log</span>(<span class="s">"1. Inicio"</span>);
+<span class="f">setTimeout</span>(() => {
+  <span class="f">console</span>.<span class="f">log</span>(<span class="s">"2. Después de 2s"</span>);
+}, <span class="n">2000</span>);
+<span class="f">console</span>.<span class="f">log</span>(<span class="s">"3. Fin"</span>);
+
+<span class="c">// 1 → 3 → 2</span></pre>
+    </div>
+    <p style="margin-top:28px;max-width:1050px">JavaScript tiene <b class="hl">un solo hilo</b>. Las tareas lentas —peticiones, temporizadores, lectura de archivos— se delegan y su resultado vuelve después gracias al <b class="hl">event loop</b>.</p>
+    <div class="notes">Pedir al grupo que adivine el orden de la derecha antes de mostrar el resultado. Analogía: pedir comida en un restaurante. El mesero (JS) no se queda parado en la cocina esperando tu plato: toma otros pedidos y te lo trae cuando está listo.</div>
+  </section>
+
+  <!-- 4. Callback hell -->
+  <section class="slide">
+    <div class="kicker">La forma más antigua</div>
+    <h2>Callbacks… y el callback hell</h2>
+    <div class="grid-2" style="grid-template-columns:1.3fr 1fr">
+      <pre class="sm"><span class="t">La pirámide de la perdición</span><span class="f">obtenerUsuario</span>(<span class="n">1</span>, (usuario) => {
+  <span class="f">obtenerPosts</span>(usuario.id, (posts) => {
+    <span class="f">obtenerComentarios</span>(posts[<span class="n">0</span>].id, (coms) => {
+      <span class="f">console</span>.<span class="f">log</span>(coms);
+      <span class="c">// ...y si hay un paso más →</span>
+    }, (error) => { <span class="c">/* manejar error */</span> });
+  }, (error) => { <span class="c">/* manejar error */</span> });
+}, (error) => { <span class="c">/* manejar error */</span> });</pre>
+      <ul class="list small">
+        <li>Cada paso depende del resultado del anterior</li>
+        <li>El código crece hacia la <b>derecha</b></li>
+        <li>Hay que manejar el error en <b>cada nivel</b></li>
+        <li>Difícil de leer y mantener</li>
+        <li>La solución de ES6: <b class="hl">Promesas</b></li>
+      </ul>
+    </div>
+    <div class="notes">Así se escribía código asíncrono antes de 2015 (y aún se ve en código antiguo de Node.js). No hace falta memorizarlo: lo importante es entender el problema que resuelven las promesas.</div>
+  </section>
+
+  <!-- 5. Promesas -->
+  <section class="slide">
+    <div class="kicker">ES2015</div>
+    <h2>¿Qué es una Promesa?</h2>
+    <div class="grid-2" style="grid-template-columns:1fr 1.35fr">
+      <div>
+        <p class="small" style="margin-bottom:18px">Un objeto que representa un valor que llegará <b class="hl">en el futuro</b>… o un error.</p>
+        <div class="stage"><b>pending</b><span>Pendiente: todavía esperando</span></div>
+        <div class="stage"><b style="color:var(--green)">fulfilled</b><span>Cumplida: <code>resolve(valor)</code> → <code>.then</code></span></div>
+        <div class="stage"><b style="color:var(--pink)">rejected</b><span>Rechazada: <code>reject(error)</code> → <code>.catch</code></span></div>
+      </div>
+      <pre class="sm"><span class="t">Crear y consumir</span><span class="k">const</span> promesa = <span class="k">new</span> <span class="f">Promise</span>((resolve, reject) => {
+  <span class="f">setTimeout</span>(() => {
+    <span class="k">const</span> ok = Math.<span class="f">random</span>() > <span class="n">0.5</span>;
+    ok ? <span class="f">resolve</span>(<span class="s">"¡Listo!"</span>) : <span class="f">reject</span>(<span class="s">"Falló"</span>);
+  }, <span class="n">1000</span>);
+});
+
+promesa
+  .<span class="f">then</span>(valor => <span class="f">console</span>.<span class="f">log</span>(valor))
+  .<span class="f">catch</span>(error => <span class="f">console</span>.<span class="f">log</span>(error));</pre>
+    </div>
+    <div class="notes">Analogía: el ticket con número que te dan en un local de comida rápida. Es una promesa: aún no tienes la comida (pending), pero cuando llamen tu número la recibes (fulfilled) o te dicen que se acabó (rejected). Una promesa solo cambia de estado una vez. En la práctica casi nunca creamos promesas: las consumimos (fetch devuelve una).</div>
+  </section>
+
+  <!-- 6. then / catch con fetch -->
+  <section class="slide">
+    <div class="kicker">Forma clásica · then / catch</div>
+    <h2>Consumir una API con fetch</h2>
+    <div class="grid-2" style="grid-template-columns:1.35fr 1fr">
+      <pre class="sm"><span class="t">jsonplaceholder.typicode.com</span><span class="f">fetch</span>(<span class="s">"https://jsonplaceholder.typicode.com/users/1"</span>)
+  .<span class="f">then</span>(res => {
+    <span class="k">if</span> (!res.ok) <span class="k">throw new</span> <span class="f">Error</span>(<span class="s">"HTTP "</span> + res.status);
+    <span class="k">return</span> res.<span class="f">json</span>();
+  })
+  .<span class="f">then</span>(usuario => {
+    <span class="f">console</span>.<span class="f">log</span>(usuario.name); <span class="c">// "Leanne Graham"</span>
+  })
+  .<span class="f">catch</span>(error => <span class="f">console</span>.<span class="f">error</span>(error))
+  .<span class="f">finally</span>(() => <span class="f">console</span>.<span class="f">log</span>(<span class="s">"Terminado"</span>));</pre>
+      <ul class="list small">
+        <li><code>fetch</code> devuelve una promesa</li>
+        <li><code>res.json()</code> también</li>
+        <li>Cada <code>then</code> recibe lo que <b>retornó</b> el anterior</li>
+        <li>Un solo <code>catch</code> atrapa errores de toda la cadena</li>
+        <li><code>finally</code> se ejecuta siempre</li>
+      </ul>
+    </div>
+    <div class="notes">Probarlo en vivo en la consola del navegador. Ojo: fetch solo rechaza la promesa si falla la red; un 404 o 500 llega al then. Por eso revisamos res.ok y lanzamos el error manualmente. Otros endpoints para probar: /posts, /todos, /comments?postId=1.</div>
+  </section>
+
+  <!-- 7. async / await -->
+  <section class="slide">
+    <div class="kicker">Forma moderna · ES2017</div>
+    <h2>async / await</h2>
+    <div class="grid-2" style="grid-template-columns:1.35fr 1fr">
+      <pre class="sm"><span class="t">El mismo ejemplo</span><span class="k">const</span> API = <span class="s">"https://jsonplaceholder.typicode.com"</span>;
+
+<span class="k">async function</span> <span class="f">obtenerUsuario</span>(id) {
+  <span class="k">try</span> {
+    <span class="k">const</span> res = <span class="k">await</span> <span class="f">fetch</span>(<span class="s">`${API}/users/${id}`</span>);
+    <span class="k">if</span> (!res.ok) <span class="k">throw new</span> <span class="f">Error</span>(<span class="s">"HTTP "</span> + res.status);
+    <span class="k">const</span> usuario = <span class="k">await</span> res.<span class="f">json</span>();
+    <span class="f">console</span>.<span class="f">log</span>(usuario.name);
+  } <span class="k">catch</span> (error) {
+    <span class="f">console</span>.<span class="f">error</span>(<span class="s">"Algo falló:"</span>, error.message);
+  }
+}
+
+<span class="f">obtenerUsuario</span>(<span class="n">1</span>);</pre>
+      <ul class="list small">
+        <li><code>async</code> hace que la función devuelva una promesa</li>
+        <li><code>await</code> pausa <b>la función</b> (no la página) hasta que la promesa se resuelva</li>
+        <li>Errores con <code>try / catch</code></li>
+        <li>Se lee de arriba hacia abajo: <b class="hl">adiós pirámide</b></li>
+      </ul>
+    </div>
+    <div class="notes">Es exactamente lo mismo que la diapositiva anterior, con otra sintaxis: por debajo siguen siendo promesas. await solo se puede usar dentro de una función async (o en el nivel superior de un módulo). Es la forma recomendada hoy.</div>
+  </section>
+
+  <!-- 8. Comparación + Promise.all -->
+  <section class="slide">
+    <div class="kicker">Comparación</div>
+    <h2>then / catch vs async / await</h2>
+    <table class="compact">
+      <thead><tr><th></th><th>then / catch</th><th>async / await</th></tr></thead>
+      <tbody>
+        <tr><td>Sintaxis</td><td>Cadena de métodos</td><td>Parece código síncrono</td></tr>
+        <tr><td>Errores</td><td><code>.catch()</code></td><td><code>try / catch</code></td></tr>
+        <tr><td>Muchos pasos</td><td>Se vuelve difícil de seguir</td><td>Lineal y legible</td></tr>
+      </tbody>
+    </table>
+    <pre class="sm" style="margin-top:24px"><span class="t">Bonus · varias peticiones en paralelo</span><span class="k">const</span> [usuarios, posts] = <span class="k">await</span> Promise.<span class="f">all</span>([
+  <span class="f">fetch</span>(<span class="s">`${API}/users`</span>).<span class="f">then</span>(r => r.<span class="f">json</span>()),
+  <span class="f">fetch</span>(<span class="s">`${API}/posts`</span>).<span class="f">then</span>(r => r.<span class="f">json</span>()),
+]);
+<span class="f">console</span>.<span class="f">log</span>(usuarios.length, posts.length); <span class="c">// 10 100</span></pre>
+    <div class="notes">No son enemigos: async/await está construido sobre promesas y se pueden combinar (como en el ejemplo de Promise.all). Promise.all lanza todas las peticiones a la vez y espera a que terminen todas; si una falla, falla todo.</div>
+  </section>
+
+  <!-- 9. Formularios intro -->
+  <section class="slide">
+    <div class="kicker">Introducción a formularios</div>
+    <h2>Leer lo que escribe el usuario</h2>
+    <div class="grid-2">
+      <pre class="sm"><span class="t">HTML</span><span class="k">&lt;form</span> id=<span class="s">"form"</span><span class="k">&gt;</span>
+  <span class="k">&lt;input</span> name=<span class="s">"titulo"</span> placeholder=<span class="s">"Título"</span><span class="k">&gt;</span>
+  <span class="k">&lt;textarea</span> name=<span class="s">"cuerpo"</span><span class="k">&gt;&lt;/textarea&gt;</span>
+  <span class="k">&lt;button</span> type=<span class="s">"submit"</span><span class="k">&gt;</span>Publicar<span class="k">&lt;/button&gt;</span>
+<span class="k">&lt;/form&gt;</span></pre>
+      <pre class="sm"><span class="t">JavaScript</span><span class="k">const</span> form = document.<span class="f">querySelector</span>(<span class="s">"#form"</span>);
+<span class="k">const</span> titulo = form.elements.titulo;
+
+titulo.value;        <span class="c">// lo que escribió</span>
+titulo.value = <span class="s">""</span>;   <span class="c">// limpiar el campo</span>
+titulo.<span class="f">focus</span>();      <span class="c">// poner el cursor</span>
+form.<span class="f">reset</span>();        <span class="c">// limpiar todo</span></pre>
+    </div>
+    <ul class="list small" style="margin-top:26px">
+      <li><code>form.elements</code> da acceso a cada campo por su atributo <code>name</code></li>
+      <li>La propiedad <code>.value</code> siempre es un <b>string</b> → usa <code>Number()</code> si necesitas un número</li>
+    </ul>
+    <div class="notes">Los formularios son la forma principal en que el usuario nos da datos. Recalcar que .value es siempre texto: "5" + "5" = "55". La próxima clase los veremos a fondo junto con los eventos.</div>
+  </section>
+
+  <!-- 10. Formulario + API -->
+  <section class="slide">
+    <div class="kicker">Uniendo todo</div>
+    <h2>Enviar un formulario a la API</h2>
+    <div class="grid-2" style="grid-template-columns:1.45fr 1fr">
+      <pre class="sm"><span class="t">POST a /posts</span>form.<span class="f">addEventListener</span>(<span class="s">"submit"</span>, <span class="k">async</span> (e) => {
+  e.<span class="f">preventDefault</span>(); <span class="c">// evita recargar</span>
+  <span class="k">const</span> datos = {
+    title: form.elements.titulo.value,
+    body: form.elements.cuerpo.value,
+  };
+  <span class="k">const</span> res = <span class="k">await</span> <span class="f">fetch</span>(<span class="s">`${API}/posts`</span>, {
+    method: <span class="s">"POST"</span>,
+    headers: { <span class="s">"Content-Type"</span>: <span class="s">"application/json"</span> },
+    body: JSON.<span class="f">stringify</span>(datos),
+  });
+  <span class="f">console</span>.<span class="f">log</span>(<span class="k">await</span> res.<span class="f">json</span>()); <span class="c">// { id: 101, ... }</span>
+});</pre>
+      <div>
+        <ul class="list small">
+          <li><code>submit</code> ocurre al enviar el formulario</li>
+          <li><code>preventDefault()</code> evita que la página se recargue</li>
+          <li>jsonplaceholder simula el guardado y responde con <code>id: 101</code></li>
+        </ul>
+        <div class="card" style="margin-top:24px;border-color:var(--accent)">
+          <span class="year">PRÓXIMA CLASE</span>
+          <h3>Formularios y eventos</h3>
+          <p><code>click</code>, <code>input</code>, <code>submit</code>, validaciones y más.</p>
+        </div>
+      </div>
+    </div>
+    <div class="notes">Avance de la próxima clase: addEventListener lo veremos en detalle. Lo importante hoy: el handler puede ser async y dentro usamos await fetch. JSON.stringify convierte el objeto en texto para enviarlo. jsonplaceholder no guarda nada de verdad, pero responde como si lo hiciera. Tarea: listar los títulos de los posts del usuario 1 (/posts?userId=1) con async/await y map.</div>
+  </section>
+
+  <div class="footer"><span>Clase 3 · Asincronía y promesas</span><span id="counter"></span></div>
+  <div id="progress"></div>
+</div>
+</div>
+
+<div id="notes-panel"><div class="h"><span>Notas del orador</span><span id="clock">00:00</span></div><div id="notes-text"></div></div>
+<div id="hud">
+  <button id="btn-notes" title="Notas (N)">Notas</button>
+  <button id="btn-full" title="Pantalla completa (F)">⛶</button>
+  <button id="btn-prev" title="Anterior (←)">←</button>
+  <button id="btn-next" title="Siguiente (→)">→</button>
+</div>
+
+<script>
+  const slides = [...document.querySelectorAll(".slide")];
+  const stage = document.getElementById("stage");
+  const counter = document.getElementById("counter");
+  const progress = document.getElementById("progress");
+  const notesPanel = document.getElementById("notes-panel");
+  const notesText = document.getElementById("notes-text");
+  const clock = document.getElementById("clock");
+  let current = 0;
+  let startTime = null;
+
+  function fit() {
+    const s = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+    stage.style.transform = `scale(${s})`;
+  }
+
+  function show(i) {
+    current = Math.max(0, Math.min(slides.length - 1, i));
+    slides.forEach((el, idx) => {
+      el.classList.toggle("active", idx === current);
+      el.classList.toggle("prev", idx < current);
+    });
+    counter.textContent = `${current + 1} / ${slides.length}`;
+    progress.style.width = `${((current + 1) / slides.length) * 100}%`;
+    const n = slides[current].querySelector(".notes");
+    notesText.textContent = n ? n.textContent : "";
+    history.replaceState(null, "", `#${current + 1}`);
+    if (current > 0 && !startTime) startTime = Date.now();
+  }
+
+  function tick() {
+    if (!startTime) return;
+    const sec = Math.floor((Date.now() - startTime) / 1000);
+    clock.textContent = `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
+  }
+
+  function toggleFull() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+    else document.exitFullscreen?.();
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (["ArrowRight", "PageDown", " ", "Enter"].includes(e.key)) { e.preventDefault(); show(current + 1); }
+    else if (["ArrowLeft", "PageUp", "Backspace"].includes(e.key)) { e.preventDefault(); show(current - 1); }
+    else if (e.key === "Home") show(0);
+    else if (e.key === "End") show(slides.length - 1);
+    else if (e.key.toLowerCase() === "n") notesPanel.classList.toggle("open");
+    else if (e.key.toLowerCase() === "f") toggleFull();
+  });
+
+  let touchX = null;
+  document.addEventListener("touchstart", (e) => { touchX = e.touches[0].clientX; }, { passive: true });
+  document.addEventListener("touchend", (e) => {
+    if (touchX === null) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    if (Math.abs(dx) > 40) show(current + (dx < 0 ? 1 : -1));
+    touchX = null;
+  });
+
+  document.getElementById("btn-next").onclick = () => show(current + 1);
+  document.getElementById("btn-prev").onclick = () => show(current - 1);
+  document.getElementById("btn-notes").onclick = () => notesPanel.classList.toggle("open");
+  document.getElementById("btn-full").onclick = toggleFull;
+
+  window.addEventListener("resize", fit);
+  setInterval(tick, 1000);
+  fit();
+  show((parseInt(location.hash.slice(1), 10) || 1) - 1);
+</script>
+</body>
+</html>
