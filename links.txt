@@ -1,0 +1,16 @@
+GUIA DE LINKS
+
+-- Repositorio
+https://github.com/diego-adrian/usip-javascript-2026
+
+-- Nodejs
+https://nodejs.org/en
+
+-- Editor visual studio code
+https://code.visualstudio.com/
+
+-- Validar si tiene soporte en el navegador
+https://caniuse.com/
+
+-- Documentacion
+https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference

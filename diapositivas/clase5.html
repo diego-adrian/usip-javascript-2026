@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>clase5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1115;
+    --surface: #171a21;
+    --surface-2: #1f232c;
+    --text: #e9ecf1;
+    --muted: #9aa3b2;
+    --accent: #f7df1e;
+    --accent-ink: #1a1a1a;
+    --line: #2a2f3a;
+    --blue: #7cb7ff;
+    --green: #8fd694;
+    --pink: #ff8fb1;
+    --orange: #ffb86b;
+    --font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: #07080a;
+    color: var(--text);
+    font-family: var(--font);
+    overflow: hidden;
+  }
+
+  /* Escenario 16:9 escalado al viewport */
+  #viewport { position: fixed; inset: 0; display: grid; place-items: center; }
+  #stage {
+    width: 1280px; height: 720px;
+    position: relative;
+    transform-origin: center center;
+    background: var(--bg);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 30px 80px rgba(0,0,0,.5);
+  }
+
+  .slide {
+    position: absolute; inset: 0;
+    padding: 64px 88px 72px;
+    display: flex; flex-direction: column;
+    opacity: 0; visibility: hidden;
+    transform: translateX(24px);
+    transition: opacity .35s ease, transform .35s ease, visibility .35s;
+  }
+  .slide.active { opacity: 1; visibility: visible; transform: none; }
+  .slide.prev { transform: translateX(-24px); }
+
+  .notes { display: none; }
+
+  /* Tipografía */
+  .kicker {
+    font-family: var(--mono);
+    font-size: 15px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 14px;
+  }
+  h1 { font-size: 84px; line-height: 1.02; font-weight: 800; letter-spacing: -.03em; }
+  h2 { font-size: 48px; line-height: 1.1; font-weight: 800; letter-spacing: -.02em; margin-bottom: 28px; }
+  h3 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+  p, li { font-size: 24px; line-height: 1.45; color: var(--text); }
+  .muted { color: var(--muted); }
+  .hl { color: var(--accent); }
+  ul.list { list-style: none; display: grid; gap: 14px; }
+  ul.list li { padding-left: 30px; position: relative; }
+  ul.list li::before {
+    content: ""; position: absolute; left: 0; top: .62em;
+    width: 12px; height: 12px; background: var(--accent); border-radius: 2px;
+  }
+  .small, .small li { font-size: 20px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; flex: 1; align-items: start; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 14px; padding: 24px 26px;
+  }
+  .card p, .card li { font-size: 19px; color: var(--muted); }
+  .card .year { font-family: var(--mono); color: var(--accent); font-size: 16px; margin-bottom: 6px; display: block; }
+
+  .big-num {
+    font-size: 180px; font-weight: 800; line-height: .9; color: var(--accent);
+    letter-spacing: -.05em;
+  }
+
+  /* Código */
+  pre {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 14px; padding: 22px 26px;
+    font-family: var(--mono); font-size: 19px; line-height: 1.6;
+    color: var(--text); overflow: hidden;
+  }
+  pre .t { display: block; font-size: 13px; color: var(--muted); margin-bottom: 10px; letter-spacing: .08em; text-transform: uppercase; }
+  .k { color: var(--pink); }
+  .s { color: var(--green); }
+  .f { color: var(--blue); }
+  .c { color: #6b7385; font-style: italic; }
+  .n { color: var(--orange); }
+
+  /* Portada */
+  .cover { justify-content: center; }
+  .cover .badge {
+    width: 132px; height: 132px; background: var(--accent); color: var(--accent-ink);
+    font-weight: 800; font-size: 64px; display: grid; place-items: end end;
+    padding: 0 14px 6px 0; border-radius: 6px; margin-bottom: 40px; letter-spacing: -.02em;
+  }
+  .cover h1 span { color: var(--accent); }
+  .cover p { margin-top: 22px; font-size: 26px; color: var(--muted); max-width: 820px; }
+  .cover .meta { position: absolute; bottom: 64px; left: 88px; font-family: var(--mono); font-size: 16px; color: var(--muted); }
+
+  /* Sección */
+  .section { justify-content: center; background:
+    radial-gradient(1200px 500px at 85% 110%, rgba(247,223,30,.14), transparent 60%), var(--bg); }
+  .section .num { font-family: var(--mono); color: var(--accent); font-size: 22px; margin-bottom: 16px; }
+
+  /* Comparativa */
+  table { width: 100%; border-collapse: collapse; font-size: 21px; }
+  th, td { text-align: left; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+  th { font-family: var(--mono); font-size: 15px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  td:first-child { color: var(--muted); }
+
+  /* Línea de tiempo */
+  .timeline { position: relative; margin-top: 40px; }
+  .timeline::before {
+    content: ""; position: absolute; left: 0; right: 0; top: 52px; height: 3px; background: var(--line);
+  }
+  .tl-row { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; position: relative; }
+  .tl-item { text-align: left; }
+  .tl-item .y { font-family: var(--mono); font-size: 20px; color: var(--accent); font-weight: 600; height: 36px; }
+  .tl-item .dot { width: 16px; height: 16px; border-radius: 50%; background: var(--accent); border: 4px solid var(--bg); margin: 0 0 18px -2px; box-sizing: content-box; }
+  .tl-item .l { font-size: 17px; line-height: 1.35; color: var(--text); }
+  .tl-item .l small { display: block; color: var(--muted); font-size: 15px; margin-top: 4px; }
+
+  /* Etiquetas ES */
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; }
+  .chip {
+    font-family: var(--mono); font-size: 16px; padding: 7px 12px; border-radius: 8px;
+    background: var(--surface-2); border: 1px solid var(--line); color: var(--text);
+  }
+  .chip b { color: var(--accent); font-weight: 600; }
+
+  .quote {
+    font-size: 40px; line-height: 1.3; font-weight: 700; letter-spacing: -.01em;
+    border-left: 6px solid var(--accent); padding-left: 32px; max-width: 1000px;
+  }
+  .quote cite { display: block; margin-top: 22px; font-size: 20px; font-style: normal; color: var(--muted); font-weight: 500; }
+
+  .stages { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-top: 8px; }
+  .stage { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .stage b { font-family: var(--mono); color: var(--accent); font-size: 18px; display: block; margin-bottom: 6px; }
+  .stage span { font-size: 16px; color: var(--muted); line-height: 1.35; display: block; }
+
+  /* Pie de diapositiva */
+  .footer {
+    position: absolute; left: 88px; right: 88px; bottom: 26px;
+    display: flex; justify-content: space-between;
+    font-family: var(--mono); font-size: 13px; color: var(--muted);
+  }
+  #progress { position: absolute; left: 0; bottom: 0; height: 4px; background: var(--accent); transition: width .35s ease; }
+
+  /* Controles */
+  #hud {
+    position: fixed; right: 16px; bottom: 16px; display: flex; gap: 8px; z-index: 10;
+    font-family: var(--mono); font-size: 13px; color: #8a92a1;
+  }
+  #hud button {
+    background: #1b1f27; color: #cfd5df; border: 1px solid #2c323d; border-radius: 8px;
+    padding: 8px 12px; font: inherit; cursor: pointer;
+  }
+  #hud button:hover { border-color: var(--accent); color: var(--accent); }
+
+  #notes-panel {
+    position: fixed; left: 16px; right: 16px; bottom: 64px; max-width: 900px; margin: 0 auto;
+    background: rgba(20,23,29,.97); border: 1px solid #2c323d; border-radius: 12px;
+    padding: 18px 22px; z-index: 9; display: none;
+    font-size: 16px; line-height: 1.55; color: #d4d9e2;
+  }
+  #notes-panel.open { display: block; }
+  #notes-panel .h { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 12px; color: var(--accent); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .1em; }
+
+  @media print {
+    body { overflow: visible; background: #fff; }
+    #hud, #notes-panel { display: none !important; }
+    #viewport { position: static; display: block; }
+    #stage { transform: none !important; box-shadow: none; border-radius: 0; height: auto; overflow: visible; background: none; }
+    .slide { position: relative; opacity: 1; visibility: visible; transform: none; width: 1280px; height: 720px; page-break-after: always; background: var(--bg); }
+  }
+
+  /* Añadidos clases 2–5 */
+  code { font-family: var(--mono); font-size: .86em; color: var(--accent); }
+  pre.sm { font-size: 16px; padding: 18px 22px; }
+  pre.xs { font-size: 15px; }
+  table.compact { font-size: 19px; }
+  table.compact th, table.compact td { padding: 11px 16px; }
+  td.ok { color: var(--green); } td.no { color: var(--pink); }
+  .stage + .stage { margin-top: 10px; }
+  .board { display: grid; grid-template-columns: repeat(3, 120px); gap: 10px; justify-content: end; }
+  .board span {
+    width: 120px; height: 120px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    display: grid; place-items: center; font-family: var(--font); font-size: 68px; font-weight: 800;
+  }
+  .board .x { color: var(--accent); }
+  .board .o { color: var(--blue); }
+</style>
+</head>
+<body>
+<div id="viewport">
+<div id="stage">
+
+  <!-- 1. Portada práctica -->
+  <section class="slide cover section">
+    <div class="grid-2" style="grid-template-columns:1.35fr 1fr;align-items:center;flex:none">
+      <div>
+        <div class="badge">JS</div>
+        <div class="kicker">Clase 5 · Ejercicio práctico</div>
+        <h1>Tres en <span>raya</span></h1>
+        <p>Vamos a aplicar todo lo aprendido para crear el juego del tres en raya.</p>
+        <div class="chips" style="margin-top:28px">
+          <span class="chip">arrays</span><span class="chip">some / every</span><span class="chip">funciones</span>
+          <span class="chip">click</span><span class="chip">delegación</span><span class="chip">classList</span><span class="chip">dataset</span>
+        </div>
+      </div>
+      <div class="board" aria-hidden="true">
+        <span class="x">X</span><span class="o">O</span><span></span>
+        <span></span><span class="x">X</span><span class="o">O</span>
+        <span class="o">O</span><span></span><span class="x">X</span>
+      </div>
+    </div>
+    <div class="meta">USIP · Curso de JavaScript · Clase 5</div>
+    <div class="notes">Clase práctica. Plan sugerido: (1) maquetar el tablero 3×3 con HTML/CSS, (2) guardar el estado en un array de 9 posiciones, (3) alternar turnos X / O con click y delegación, (4) detectar ganador con las 8 combinaciones y some/every, (5) detectar empate, (6) botón para reiniciar. Retos extra: marcador, resaltar la línea ganadora, jugar contra la computadora.</div>
+  </section>
+
+  <div class="footer"><span>Clase 5 · Práctica: tres en raya</span><span id="counter"></span></div>
+  <div id="progress"></div>
+</div>
+</div>
+
+<div id="notes-panel"><div class="h"><span>Notas del orador</span><span id="clock">00:00</span></div><div id="notes-text"></div></div>
+<div id="hud">
+  <button id="btn-notes" title="Notas (N)">Notas</button>
+  <button id="btn-full" title="Pantalla completa (F)">⛶</button>
+  <button id="btn-prev" title="Anterior (←)">←</button>
+  <button id="btn-next" title="Siguiente (→)">→</button>
+</div>
+
+<script>
+  const slides = [...document.querySelectorAll(".slide")];
+  const stage = document.getElementById("stage");
+  const counter = document.getElementById("counter");
+  const progress = document.getElementById("progress");
+  const notesPanel = document.getElementById("notes-panel");
+  const notesText = document.getElementById("notes-text");
+  const clock = document.getElementById("clock");
+  let current = 0;
+  let startTime = null;
+
+  function fit() {
+    const s = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+    stage.style.transform = `scale(${s})`;
+  }
+
+  function show(i) {
+    current = Math.max(0, Math.min(slides.length - 1, i));
+    slides.forEach((el, idx) => {
+      el.classList.toggle("active", idx === current);
+      el.classList.toggle("prev", idx < current);
+    });
+    counter.textContent = `${current + 1} / ${slides.length}`;
+    progress.style.width = `${((current + 1) / slides.length) * 100}%`;
+    const n = slides[current].querySelector(".notes");
+    notesText.textContent = n ? n.textContent : "";
+    history.replaceState(null, "", `#${current + 1}`);
+    if (current > 0 && !startTime) startTime = Date.now();
+  }
+
+  function tick() {
+    if (!startTime) return;
+    const sec = Math.floor((Date.now() - startTime) / 1000);
+    clock.textContent = `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
+  }
+
+  function toggleFull() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+    else document.exitFullscreen?.();
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (["ArrowRight", "PageDown", " ", "Enter"].includes(e.key)) { e.preventDefault(); show(current + 1); }
+    else if (["ArrowLeft", "PageUp", "Backspace"].includes(e.key)) { e.preventDefault(); show(current - 1); }
+    else if (e.key === "Home") show(0);
+    else if (e.key === "End") show(slides.length - 1);
+    else if (e.key.toLowerCase() === "n") notesPanel.classList.toggle("open");
+    else if (e.key.toLowerCase() === "f") toggleFull();
+  });
+
+  let touchX = null;
+  document.addEventListener("touchstart", (e) => { touchX = e.touches[0].clientX; }, { passive: true });
+  document.addEventListener("touchend", (e) => {
+    if (touchX === null) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    if (Math.abs(dx) > 40) show(current + (dx < 0 ? 1 : -1));
+    touchX = null;
+  });
+
+  document.getElementById("btn-next").onclick = () => show(current + 1);
+  document.getElementById("btn-prev").onclick = () => show(current - 1);
+  document.getElementById("btn-notes").onclick = () => notesPanel.classList.toggle("open");
+  document.getElementById("btn-full").onclick = toggleFull;
+
+  window.addEventListener("resize", fit);
+  setInterval(tick, 1000);
+  fit();
+  show((parseInt(location.hash.slice(1), 10) || 1) - 1);
+</script>
+</body>
+</html>

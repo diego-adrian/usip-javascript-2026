@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>clase4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1115;
+    --surface: #171a21;
+    --surface-2: #1f232c;
+    --text: #e9ecf1;
+    --muted: #9aa3b2;
+    --accent: #f7df1e;
+    --accent-ink: #1a1a1a;
+    --line: #2a2f3a;
+    --blue: #7cb7ff;
+    --green: #8fd694;
+    --pink: #ff8fb1;
+    --orange: #ffb86b;
+    --font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: #07080a;
+    color: var(--text);
+    font-family: var(--font);
+    overflow: hidden;
+  }
+
+  /* Escenario 16:9 escalado al viewport */
+  #viewport { position: fixed; inset: 0; display: grid; place-items: center; }
+  #stage {
+    width: 1280px; height: 720px;
+    position: relative;
+    transform-origin: center center;
+    background: var(--bg);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 30px 80px rgba(0,0,0,.5);
+  }
+
+  .slide {
+    position: absolute; inset: 0;
+    padding: 64px 88px 72px;
+    display: flex; flex-direction: column;
+    opacity: 0; visibility: hidden;
+    transform: translateX(24px);
+    transition: opacity .35s ease, transform .35s ease, visibility .35s;
+  }
+  .slide.active { opacity: 1; visibility: visible; transform: none; }
+  .slide.prev { transform: translateX(-24px); }
+
+  .notes { display: none; }
+
+  /* Tipografía */
+  .kicker {
+    font-family: var(--mono);
+    font-size: 15px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 14px;
+  }
+  h1 { font-size: 84px; line-height: 1.02; font-weight: 800; letter-spacing: -.03em; }
+  h2 { font-size: 48px; line-height: 1.1; font-weight: 800; letter-spacing: -.02em; margin-bottom: 28px; }
+  h3 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+  p, li { font-size: 24px; line-height: 1.45; color: var(--text); }
+  .muted { color: var(--muted); }
+  .hl { color: var(--accent); }
+  ul.list { list-style: none; display: grid; gap: 14px; }
+  ul.list li { padding-left: 30px; position: relative; }
+  ul.list li::before {
+    content: ""; position: absolute; left: 0; top: .62em;
+    width: 12px; height: 12px; background: var(--accent); border-radius: 2px;
+  }
+  .small, .small li { font-size: 20px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; flex: 1; align-items: start; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 14px; padding: 24px 26px;
+  }
+  .card p, .card li { font-size: 19px; color: var(--muted); }
+  .card .year { font-family: var(--mono); color: var(--accent); font-size: 16px; margin-bottom: 6px; display: block; }
+
+  .big-num {
+    font-size: 180px; font-weight: 800; line-height: .9; color: var(--accent);
+    letter-spacing: -.05em;
+  }
+
+  /* Código */
+  pre {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 14px; padding: 22px 26px;
+    font-family: var(--mono); font-size: 19px; line-height: 1.6;
+    color: var(--text); overflow: hidden;
+  }
+  pre .t { display: block; font-size: 13px; color: var(--muted); margin-bottom: 10px; letter-spacing: .08em; text-transform: uppercase; }
+  .k { color: var(--pink); }
+  .s { color: var(--green); }
+  .f { color: var(--blue); }
+  .c { color: #6b7385; font-style: italic; }
+  .n { color: var(--orange); }
+
+  /* Portada */
+  .cover { justify-content: center; }
+  .cover .badge {
+    width: 132px; height: 132px; background: var(--accent); color: var(--accent-ink);
+    font-weight: 800; font-size: 64px; display: grid; place-items: end end;
+    padding: 0 14px 6px 0; border-radius: 6px; margin-bottom: 40px; letter-spacing: -.02em;
+  }
+  .cover h1 span { color: var(--accent); }
+  .cover p { margin-top: 22px; font-size: 26px; color: var(--muted); max-width: 820px; }
+  .cover .meta { position: absolute; bottom: 64px; left: 88px; font-family: var(--mono); font-size: 16px; color: var(--muted); }
+
+  /* Sección */
+  .section { justify-content: center; background:
+    radial-gradient(1200px 500px at 85% 110%, rgba(247,223,30,.14), transparent 60%), var(--bg); }
+  .section .num { font-family: var(--mono); color: var(--accent); font-size: 22px; margin-bottom: 16px; }
+
+  /* Comparativa */
+  table { width: 100%; border-collapse: collapse; font-size: 21px; }
+  th, td { text-align: left; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+  th { font-family: var(--mono); font-size: 15px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  td:first-child { color: var(--muted); }
+
+  /* Línea de tiempo */
+  .timeline { position: relative; margin-top: 40px; }
+  .timeline::before {
+    content: ""; position: absolute; left: 0; right: 0; top: 52px; height: 3px; background: var(--line);
+  }
+  .tl-row { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; position: relative; }
+  .tl-item { text-align: left; }
+  .tl-item .y { font-family: var(--mono); font-size: 20px; color: var(--accent); font-weight: 600; height: 36px; }
+  .tl-item .dot { width: 16px; height: 16px; border-radius: 50%; background: var(--accent); border: 4px solid var(--bg); margin: 0 0 18px -2px; box-sizing: content-box; }
+  .tl-item .l { font-size: 17px; line-height: 1.35; color: var(--text); }
+  .tl-item .l small { display: block; color: var(--muted); font-size: 15px; margin-top: 4px; }
+
+  /* Etiquetas ES */
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; }
+  .chip {
+    font-family: var(--mono); font-size: 16px; padding: 7px 12px; border-radius: 8px;
+    background: var(--surface-2); border: 1px solid var(--line); color: var(--text);
+  }
+  .chip b { color: var(--accent); font-weight: 600; }
+
+  .quote {
+    font-size: 40px; line-height: 1.3; font-weight: 700; letter-spacing: -.01em;
+    border-left: 6px solid var(--accent); padding-left: 32px; max-width: 1000px;
+  }
+  .quote cite { display: block; margin-top: 22px; font-size: 20px; font-style: normal; color: var(--muted); font-weight: 500; }
+
+  .stages { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-top: 8px; }
+  .stage { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .stage b { font-family: var(--mono); color: var(--accent); font-size: 18px; display: block; margin-bottom: 6px; }
+  .stage span { font-size: 16px; color: var(--muted); line-height: 1.35; display: block; }
+
+  /* Pie de diapositiva */
+  .footer {
+    position: absolute; left: 88px; right: 88px; bottom: 26px;
+    display: flex; justify-content: space-between;
+    font-family: var(--mono); font-size: 13px; color: var(--muted);
+  }
+  #progress { position: absolute; left: 0; bottom: 0; height: 4px; background: var(--accent); transition: width .35s ease; }
+
+  /* Controles */
+  #hud {
+    position: fixed; right: 16px; bottom: 16px; display: flex; gap: 8px; z-index: 10;
+    font-family: var(--mono); font-size: 13px; color: #8a92a1;
+  }
+  #hud button {
+    background: #1b1f27; color: #cfd5df; border: 1px solid #2c323d; border-radius: 8px;
+    padding: 8px 12px; font: inherit; cursor: pointer;
+  }
+  #hud button:hover { border-color: var(--accent); color: var(--accent); }
+
+  #notes-panel {
+    position: fixed; left: 16px; right: 16px; bottom: 64px; max-width: 900px; margin: 0 auto;
+    background: rgba(20,23,29,.97); border: 1px solid #2c323d; border-radius: 12px;
+    padding: 18px 22px; z-index: 9; display: none;
+    font-size: 16px; line-height: 1.55; color: #d4d9e2;
+  }
+  #notes-panel.open { display: block; }
+  #notes-panel .h { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 12px; color: var(--accent); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .1em; }
+
+  @media print {
+    body { overflow: visible; background: #fff; }
+    #hud, #notes-panel { display: none !important; }
+    #viewport { position: static; display: block; }
+    #stage { transform: none !important; box-shadow: none; border-radius: 0; height: auto; overflow: visible; background: none; }
+    .slide { position: relative; opacity: 1; visibility: visible; transform: none; width: 1280px; height: 720px; page-break-after: always; background: var(--bg); }
+  }
+
+  /* Añadidos clases 2–5 */
+  code { font-family: var(--mono); font-size: .86em; color: var(--accent); }
+  pre.sm { font-size: 16px; padding: 18px 22px; }
+  pre.xs { font-size: 15px; }
+  table.compact { font-size: 19px; }
+  table.compact th, table.compact td { padding: 11px 16px; }
+  td.ok { color: var(--green); } td.no { color: var(--pink); }
+  .stage + .stage { margin-top: 10px; }
+  .board { display: grid; grid-template-columns: repeat(3, 120px); gap: 10px; justify-content: end; }
+  .board span {
+    width: 120px; height: 120px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    display: grid; place-items: center; font-family: var(--font); font-size: 68px; font-weight: 800;
+  }
+  .board .x { color: var(--accent); }
+  .board .o { color: var(--blue); }
+  .board.sm { grid-template-columns: repeat(3, 96px); }
+  .board.sm span { width: 96px; height: 96px; font-size: 54px; }
+  .board.coords span { position: relative; }
+  .board.coords small { position: absolute; top: 6px; left: 8px; font-family: var(--mono); font-size: 12px; font-weight: 400; color: var(--muted); }
+</style>
+</head>
+<body>
+<div id="viewport">
+<div id="stage">
+
+  <!-- 1. Portada -->
+  <section class="slide cover">
+    <div class="badge">JS</div>
+    <div class="kicker">Clase 4 · Interacción</div>
+    <h1>Formularios y<br><span>eventos</span></h1>
+    <p>Hacer que la página reaccione a lo que hace el usuario: clics, teclas y envíos de formulario.</p>
+    <div class="meta">USIP · Curso de JavaScript · Clase 4</div>
+    <div class="notes">Bienvenida. Hasta ahora nuestro código se ejecutaba de arriba hacia abajo y terminaba. Hoy aprendemos a esperar acciones del usuario y responder a ellas: la base de cualquier aplicación interactiva.</div>
+  </section>
+
+  <!-- 2. El problema: DOM no cargado -->
+  <section class="slide">
+    <div class="kicker">Antes de empezar</div>
+    <h2>¿El DOM ya está listo?</h2>
+    <div class="grid-2" style="grid-template-columns:1.35fr 1fr">
+      <pre class="xs"><span class="t">index.html</span><span class="k">&lt;head&gt;</span>
+  <span class="k">&lt;script</span> src=<span class="s">"app.js"</span><span class="k">&gt;&lt;/script&gt;</span>  <span class="c">← se ejecuta aquí</span>
+<span class="k">&lt;/head&gt;</span>
+<span class="k">&lt;body&gt;</span>
+  <span class="k">&lt;button</span> id=<span class="s">"btn"</span><span class="k">&gt;</span>Clic<span class="k">&lt;/button&gt;</span> <span class="c">← aún no existe</span>
+<span class="k">&lt;/body&gt;</span>
+
+<span class="c">// app.js</span>
+<span class="k">const</span> btn = document.<span class="f">querySelector</span>(<span class="s">"#btn"</span>);
+<span class="f">console</span>.<span class="f">log</span>(btn); <span class="c">// null</span>
+btn.<span class="f">addEventListener</span>(<span class="s">"click"</span>, saludar);
+<span class="c">// ❌ TypeError: Cannot read properties</span>
+<span class="c">//    of null (reading 'addEventListener')</span></pre>
+      <div>
+        <div class="stage"><b>1 · Lectura</b><span>El navegador lee el HTML de arriba hacia abajo.</span></div>
+        <div class="stage"><b>2 · Pausa</b><span>Al encontrar un <code>&lt;script&gt;</code> clásico se detiene y lo ejecuta.</span></div>
+        <div class="stage"><b>3 · null</b><span>Lo que está más abajo todavía no existe: <code>querySelector</code> devuelve <code>null</code>.</span></div>
+      </div>
+    </div>
+    <div class="notes">Antes de escuchar eventos hay que asegurarse de que los elementos existen. Es el error más común al empezar: "Cannot read properties of null". No es un error de la lógica, es de CUÁNDO se ejecuta el script. Mostrarlo en vivo moviendo el script al head.</div>
+  </section>
+
+  <!-- 3. Formas de esperar al DOM -->
+  <section class="slide">
+    <div class="kicker">Antes de empezar · Soluciones</div>
+    <h2>Formas de esperar al DOM</h2>
+    <table class="compact">
+      <thead><tr><th>Forma</th><th>Cuándo se ejecuta</th><th>¿DOM listo?</th></tr></thead>
+      <tbody>
+        <tr><td><code>&lt;script&gt;</code> al final de <code>&lt;body&gt;</code></td><td>Al llegar a esa línea; el HTML de arriba ya existe</td><td class="ok">✔ Sí</td></tr>
+        <tr><td><code>DOMContentLoaded</code></td><td>Cuando el navegador terminó de leer el HTML</td><td class="ok">✔ Sí</td></tr>
+        <tr><td><code>&lt;script defer&gt;</code></td><td>Tras leer el HTML, en orden, justo antes de <code>DOMContentLoaded</code></td><td class="ok">✔ Sí</td></tr>
+        <tr><td><code>&lt;script type="module"&gt;</code></td><td>Igual que <code>defer</code>: los módulos ES son diferidos por defecto</td><td class="ok">✔ Sí</td></tr>
+        <tr><td><code>&lt;script async&gt;</code></td><td>Apenas termina de descargarse, sin orden</td><td class="no">✘ No garantizado</td></tr>
+        <tr><td><code>window</code> · <code>load</code></td><td>Cuando también cargaron imágenes, CSS e iframes</td><td class="ok">✔ Sí, pero tarda más</td></tr>
+      </tbody>
+    </table>
+    <div class="notes">Las cuatro primeras resuelven el problema. async es para scripts independientes (analytics), no para código que toca el DOM. load solo se justifica si necesitamos medidas de imágenes ya cargadas. DOMContentLoaded se registra con document.addEventListener — es nuestro primer evento, lo detallamos enseguida.</div>
+  </section>
+
+  <!-- 4. ¿Hace falta DOMContentLoaded con ES modules? -->
+  <section class="slide">
+    <div class="kicker">Antes de empezar · ES modules</div>
+    <h2>¿Sigue haciendo falta DOMContentLoaded?</h2>
+    <div class="grid-2">
+      <pre class="xs" style="font-variant-ligatures:none"><span class="t">Hoy · recomendado</span><span class="k">&lt;head&gt;</span>
+  <span class="c">&lt;!-- A: módulo ES --&gt;</span>
+  <span class="k">&lt;script</span> type=<span class="s">"module"</span> src=<span class="s">"app.js"</span><span class="k">&gt;&lt;/script&gt;</span>
+  <span class="c">&lt;!-- B: script clásico --&gt;</span>
+  <span class="k">&lt;script</span> src=<span class="s">"app.js"</span> defer<span class="k">&gt;&lt;/script&gt;</span>
+<span class="k">&lt;/head&gt;</span>
+
+<span class="c">// app.js — sin envolver nada ✔</span>
+<span class="k">const</span> btn = document.<span class="f">querySelector</span>(<span class="s">"#btn"</span>);
+btn.<span class="f">addEventListener</span>(<span class="s">"click"</span>, saludar);</pre>
+      <div>
+        <pre class="xs" style="margin-bottom:18px"><span class="t">Solo si no puedes usar module / defer</span>document.<span class="f">addEventListener</span>(<span class="s">"DOMContentLoaded"</span>, () => {
+  <span class="k">const</span> btn = document.<span class="f">querySelector</span>(<span class="s">"#btn"</span>);
+  btn.<span class="f">addEventListener</span>(<span class="s">"click"</span>, saludar);
+});</pre>
+        <ul class="list small">
+          <li>Con <code>type="module"</code> o <code>defer</code> <b class="hl">ya no hace falta</b>.</li>
+          <li>Sí hace falta en un <code>&lt;script&gt;</code> clásico inline en el <code>&lt;head&gt;</code>.</li>
+          <li><code>type="module"</code> necesita servidor (Live Server); con <code>file://</code> falla.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="notes">Aclaración clave: usar sintaxis ES6 (let, const, flechas) NO cambia nada; lo que cambia es CÓMO se carga el script. type="module" lo vuelve diferido automáticamente (también los módulos inline). defer solo funciona con src, no en scripts inline. En el curso usaremos defer o type="module" y nos olvidamos de DOMContentLoaded. Si abren el HTML con doble clic (file://), el módulo falla por CORS: usar Live Server.</div>
+  </section>
+
+  <!-- 5. Qué es un evento -->
+  <section class="slide">
+    <div class="kicker">Conceptos</div>
+    <h2>¿Qué es un evento?</h2>
+    <p style="max-width:1050px;margin-bottom:28px">Algo que ocurre en la página —un clic, una tecla, un envío— y a lo que podemos <b class="hl">reaccionar</b> ejecutando una función.</p>
+    <div class="grid-2">
+      <pre class="sm"><span class="t">Anatomía</span><span class="k">const</span> boton = document.<span class="f">querySelector</span>(<span class="s">"#btn"</span>);
+
+boton.<span class="f">addEventListener</span>(<span class="s">"click"</span>, () => {
+  <span class="f">alert</span>(<span class="s">"¡Hola!"</span>);
+});</pre>
+      <div>
+        <div class="stage"><b>1 · Elemento</b><span>¿Quién escucha? → <code>boton</code></span></div>
+        <div class="stage"><b>2 · Tipo de evento</b><span>¿Qué esperamos? → <code>"click"</code></span></div>
+        <div class="stage"><b>3 · Handler</b><span>¿Qué hacemos? → la función (un <b>callback</b>)</span></div>
+      </div>
+    </div>
+    <div class="notes">Relacionar con la clase pasada: el handler es un callback; el navegador lo llama cuando ocurre el evento. Mencionar que existe onclick="..." en el HTML, pero preferimos addEventListener: separa HTML de JS y permite varios listeners en el mismo elemento.</div>
+  </section>
+
+  <!-- 6. Eventos más usados -->
+  <section class="slide">
+    <div class="kicker">Referencia</div>
+    <h2>Los eventos más usados</h2>
+    <table class="compact">
+      <thead><tr><th>Evento</th><th>Cuándo ocurre</th><th>Uso típico</th></tr></thead>
+      <tbody>
+        <tr><td><code>click</code></td><td>Al hacer clic</td><td>Botones, tarjetas, casillas</td></tr>
+        <tr><td><code>input</code></td><td>Cada vez que cambia el valor</td><td>Validar mientras se escribe</td></tr>
+        <tr><td><code>change</code></td><td>Al confirmar un cambio</td><td><code>select</code>, checkbox, radio</td></tr>
+        <tr><td><code>submit</code></td><td>Al enviar un formulario</td><td>Guardar o enviar datos</td></tr>
+        <tr><td><code>keydown</code></td><td>Al presionar una tecla</td><td>Atajos, Enter, Escape</td></tr>
+        <tr><td><code>mouseover</code> / <code>mouseout</code></td><td>Al entrar / salir el cursor</td><td>Efectos visuales</td></tr>
+        <tr><td><code>DOMContentLoaded</code></td><td>Cuando el HTML terminó de cargar</td><td>Inicializar la aplicación</td></tr>
+      </tbody>
+    </table>
+    <div class="notes">No hace falta memorizar la lista: con estos siete se resuelve la gran mayoría de casos. Hay muchos más (scroll, resize, focus, blur, dblclick…). Referencia completa en MDN: "Event reference".</div>
+  </section>
+
+  <!-- 7. Ejemplos: click, input, change, submit -->
+  <section class="slide">
+    <div class="kicker">Referencia · Ejemplos</div>
+    <h2>Un ejemplo por evento <span class="muted">(1/2)</span></h2>
+    <div class="grid-2" style="gap:18px 28px">
+      <pre class="xs"><span class="t">click</span><span class="c">// &lt;button id="saludar"&gt;Saludar&lt;/button&gt;</span>
+<span class="k">const</span> btn = document.<span class="f">querySelector</span>(<span class="s">"#saludar"</span>);
+btn.<span class="f">addEventListener</span>(<span class="s">"click"</span>, () => {
+  <span class="f">alert</span>(<span class="s">"¡Hola!"</span>);
+});</pre>
+      <pre class="xs"><span class="t">input</span><span class="c">// &lt;input id="nombre"&gt; &lt;p id="vista"&gt;&lt;/p&gt;</span>
+<span class="k">const</span> campo = document.<span class="f">querySelector</span>(<span class="s">"#nombre"</span>);
+<span class="k">const</span> vista = document.<span class="f">querySelector</span>(<span class="s">"#vista"</span>);
+campo.<span class="f">addEventListener</span>(<span class="s">"input"</span>, () => {
+  vista.textContent = campo.value; <span class="c">// en vivo</span>
+});</pre>
+      <pre class="xs"><span class="t">change</span><span class="c">// &lt;select id="pais"&gt;…&lt;/select&gt;</span>
+<span class="k">const</span> pais = document.<span class="f">querySelector</span>(<span class="s">"#pais"</span>);
+pais.<span class="f">addEventListener</span>(<span class="s">"change"</span>, () => {
+  <span class="f">console</span>.<span class="f">log</span>(<span class="s">"Elegiste:"</span>, pais.value);
+});</pre>
+      <pre class="xs"><span class="t">submit</span><span class="c">// &lt;form id="login"&gt;…&lt;/form&gt;</span>
+<span class="k">const</span> form = document.<span class="f">querySelector</span>(<span class="s">"#login"</span>);
+form.<span class="f">addEventListener</span>(<span class="s">"submit"</span>, (e) => {
+  e.<span class="f">preventDefault</span>(); <span class="c">// no recarga la página</span>
+  <span class="f">console</span>.<span class="f">log</span>(<span class="s">"Formulario enviado"</span>);
+});</pre>
+    </div>
+    <div class="notes">Mismo patrón en los cuatro: seleccionar el elemento, addEventListener con el tipo de evento y un callback. Diferencia clave input vs change: input se dispara con cada tecla; change cuando se confirma el valor (al elegir una opción del select o al salir del campo de texto). En submit, el listener va en el FORM, no en el botón.</div>
+  </section>
+
+  <!-- 8. Ejemplos: keydown, mouseover/mouseout, DOMContentLoaded -->
+  <section class="slide">
+    <div class="kicker">Referencia · Ejemplos</div>
+    <h2>Un ejemplo por evento <span class="muted">(2/2)</span></h2>
+    <div class="grid-2" style="gap:18px 28px">
+      <pre class="xs"><span class="t">keydown</span><span class="c">// &lt;input id="buscar"&gt;</span>
+<span class="k">const</span> buscar = document.<span class="f">querySelector</span>(<span class="s">"#buscar"</span>);
+buscar.<span class="f">addEventListener</span>(<span class="s">"keydown"</span>, (e) => {
+  <span class="k">if</span> (e.key === <span class="s">"Enter"</span>) {
+    <span class="f">console</span>.<span class="f">log</span>(<span class="s">"Buscar:"</span>, buscar.value);
+  }
+});</pre>
+      <pre class="xs"><span class="t">mouseover / mouseout</span><span class="c">// &lt;div id="caja"&gt;Pasa el mouse&lt;/div&gt;</span>
+<span class="k">const</span> caja = document.<span class="f">querySelector</span>(<span class="s">"#caja"</span>);
+caja.<span class="f">addEventListener</span>(<span class="s">"mouseover"</span>, () => {
+  caja.classList.<span class="f">add</span>(<span class="s">"resaltado"</span>);
+});
+caja.<span class="f">addEventListener</span>(<span class="s">"mouseout"</span>, () => {
+  caja.classList.<span class="f">remove</span>(<span class="s">"resaltado"</span>);
+});</pre>
+      <pre class="xs"><span class="t">DOMContentLoaded</span><span class="c">// script clásico en &lt;head&gt;, sin defer</span>
+document.<span class="f">addEventListener</span>(<span class="s">"DOMContentLoaded"</span>, () => {
+  <span class="k">const</span> btn = document.<span class="f">querySelector</span>(<span class="s">"#btn"</span>);
+  btn.textContent = <span class="s">"¡Listo!"</span>; <span class="c">// ya existe</span>
+});</pre>
+      <div class="card">
+        <h3>Dato útil</h3>
+        <p><code>mouseenter</code> / <code>mouseleave</code> hacen lo mismo que <code>mouseover</code> / <code>mouseout</code>, pero <b class="hl">no se repiten</b> al pasar por los elementos hijos. Para efectos de hover suelen ser la mejor opción.</p>
+      </div>
+    </div>
+    <div class="notes">keydown: e.key dice qué tecla se presionó ("Enter", "Escape", "a"). mouseover/mouseout: JS solo agrega o quita la clase; el estilo vive en el CSS (y para un hover simple basta :hover en CSS, JS se justifica cuando hay lógica). DOMContentLoaded: recordar lo visto al inicio, solo hace falta si el script no usa defer ni type="module".</div>
+  </section>
+
+  <!-- 9. click -->
+  <section class="slide">
+    <div class="kicker">Evento click</div>
+    <h2>click en acción</h2>
+    <div class="grid-2">
+      <pre class="sm"><span class="t">Contador</span><span class="c">// HTML: &lt;p id="total"&gt;0&lt;/p&gt;</span>
+<span class="c">//       &lt;button id="sumar"&gt;+1&lt;/button&gt;</span>
+
+<span class="k">let</span> total = <span class="n">0</span>;
+<span class="k">const</span> texto = document.<span class="f">querySelector</span>(<span class="s">"#total"</span>);
+<span class="k">const</span> btn = document.<span class="f">querySelector</span>(<span class="s">"#sumar"</span>);
+
+btn.<span class="f">addEventListener</span>(<span class="s">"click"</span>, () => {
+  total++;
+  texto.textContent = total;
+});</pre>
+      <pre class="sm"><span class="t">Alternar modo oscuro</span><span class="k">const</span> tema = document.<span class="f">querySelector</span>(<span class="s">"#tema"</span>);
+
+tema.<span class="f">addEventListener</span>(<span class="s">"click"</span>, () => {
+  document.body.classList.<span class="f">toggle</span>(<span class="s">"oscuro"</span>);
+
+  <span class="k">const</span> oscuro = document.body
+    .classList.<span class="f">contains</span>(<span class="s">"oscuro"</span>);
+  tema.textContent = oscuro
+    ? <span class="s">"Modo claro"</span> : <span class="s">"Modo oscuro"</span>;
+});</pre>
+    </div>
+    <div class="notes">Dos patrones que se repiten siempre: (1) modificar el texto de un elemento con textContent y (2) agregar/quitar clases con classList (add, remove, toggle, contains). El estilo vive en el CSS; JS solo cambia la clase. Hacerlo en vivo.</div>
+  </section>
+
+  <!-- 10. Objeto event -->
+  <section class="slide">
+    <div class="kicker">El objeto event</div>
+    <h2>Lo que el evento nos cuenta</h2>
+    <div class="grid-2" style="grid-template-columns:1.3fr 1fr">
+      <pre class="sm"><span class="t">El parámetro e</span>document.<span class="f">addEventListener</span>(<span class="s">"keydown"</span>, (e) => {
+  <span class="f">console</span>.<span class="f">log</span>(e.key); <span class="c">// "Enter", "a", "Escape"</span>
+  <span class="k">if</span> (e.key === <span class="s">"Escape"</span>) <span class="f">cerrarModal</span>();
+});
+
+boton.<span class="f">addEventListener</span>(<span class="s">"click"</span>, (e) => {
+  <span class="f">console</span>.<span class="f">log</span>(e.target); <span class="c">// el elemento clicado</span>
+  <span class="f">console</span>.<span class="f">log</span>(e.type);   <span class="c">// "click"</span>
+});
+
+enlace.<span class="f">addEventListener</span>(<span class="s">"click"</span>, (e) => {
+  e.<span class="f">preventDefault</span>(); <span class="c">// no navega</span>
+});</pre>
+      <ul class="list small">
+        <li><code>e.target</code> — el elemento que originó el evento</li>
+        <li><code>e.type</code> — el tipo de evento</li>
+        <li><code>e.key</code> — la tecla presionada</li>
+        <li><code>e.preventDefault()</code> — cancela la acción por defecto del navegador</li>
+        <li><code>e.stopPropagation()</code> — evita que el evento suba a los padres</li>
+      </ul>
+    </div>
+    <div class="notes">El navegador llama a nuestro handler pasándole un objeto con toda la información del evento. Por convención lo llamamos e o event. preventDefault será clave en los formularios (evita que la página se recargue al enviar).</div>
+  </section>
+
+  <!-- 11. submit + FormData -->
+  <section class="slide">
+    <div class="kicker">Formularios · submit</div>
+    <h2>Capturar el envío del formulario</h2>
+    <div class="grid-2" style="grid-template-columns:1fr 1.35fr">
+      <pre class="sm"><span class="t">HTML</span><span class="k">&lt;form</span> id=<span class="s">"registro"</span><span class="k">&gt;</span>
+  <span class="k">&lt;input</span> name=<span class="s">"nombre"</span> required<span class="k">&gt;</span>
+  <span class="k">&lt;input</span> name=<span class="s">"email"</span> type=<span class="s">"email"</span><span class="k">&gt;</span>
+  <span class="k">&lt;select</span> name=<span class="s">"curso"</span><span class="k">&gt;</span>
+    <span class="k">&lt;option&gt;</span>JavaScript<span class="k">&lt;/option&gt;</span>
+    <span class="k">&lt;option&gt;</span>Python<span class="k">&lt;/option&gt;</span>
+  <span class="k">&lt;/select&gt;</span>
+  <span class="k">&lt;button&gt;</span>Registrarme<span class="k">&lt;/button&gt;</span>
+<span class="k">&lt;/form&gt;</span>
+<span class="k">&lt;p</span> id=<span class="s">"mensaje"</span><span class="k">&gt;&lt;/p&gt;</span></pre>
+      <pre class="sm"><span class="t">JavaScript</span><span class="k">const</span> form = document.<span class="f">querySelector</span>(<span class="s">"#registro"</span>);
+
+form.<span class="f">addEventListener</span>(<span class="s">"submit"</span>, (e) => {
+  e.<span class="f">preventDefault</span>(); <span class="c">// ¡sin recargar!</span>
+
+  <span class="k">const</span> datos = Object.<span class="f">fromEntries</span>(<span class="k">new</span> <span class="f">FormData</span>(form));
+  <span class="f">console</span>.<span class="f">log</span>(datos);
+  <span class="c">// { nombre: "Ana", email: "…", curso: "…" }</span>
+
+  form.<span class="f">reset</span>();
+});</pre>
+    </div>
+    <div class="notes">Escuchamos submit en el form, no click en el botón: así también funciona al presionar Enter. FormData lee todos los campos por su name y Object.fromEntries (clase 2) lo convierte en un objeto normal. Los atributos required y type="email" son una primera validación gratis del navegador.</div>
+  </section>
+
+  <!-- 12. input / change -->
+  <section class="slide">
+    <div class="kicker">Eventos input y change</div>
+    <h2>Validar mientras el usuario escribe</h2>
+    <div class="grid-2" style="grid-template-columns:1.45fr 1fr">
+      <pre class="sm"><span class="t">Feedback en tiempo real</span><span class="k">const</span> email = form.elements.email;
+<span class="k">const</span> error = document.<span class="f">querySelector</span>(<span class="s">"#error-email"</span>);
+
+email.<span class="f">addEventListener</span>(<span class="s">"input"</span>, () => {
+  <span class="k">const</span> valido = email.value.<span class="f">includes</span>(<span class="s">"@"</span>);
+  error.textContent = valido ? <span class="s">""</span> : <span class="s">"Email inválido"</span>;
+  email.classList.<span class="f">toggle</span>(<span class="s">"invalido"</span>, !valido);
+});
+
+form.elements.curso.<span class="f">addEventListener</span>(<span class="s">"change"</span>, (e) => {
+  <span class="f">console</span>.<span class="f">log</span>(<span class="s">"Elegiste:"</span>, e.target.value);
+});</pre>
+      <ul class="list small">
+        <li><code>input</code> — se dispara con <b>cada tecla</b></li>
+        <li><code>change</code> — al <b>confirmar</b> el cambio (elegir una opción, salir del campo)</li>
+        <li>Mostramos errores con <code>textContent</code> y estilos con <code>classList</code></li>
+        <li><code>toggle(clase, condición)</code> agrega o quita según el booleano</li>
+      </ul>
+    </div>
+    <div class="notes">Mostrar la diferencia en vivo: con un input de texto, input se dispara en cada tecla y change solo al salir del campo. Para select y checkbox, change es el evento natural.</div>
+  </section>
+
+  <!-- 13. Validar antes de enviar -->
+  <section class="slide">
+    <div class="kicker">Validación</div>
+    <h2>Validar antes de enviar</h2>
+    <div class="grid-2" style="grid-template-columns:1.45fr 1fr">
+      <pre class="sm"><span class="t">submit con validación</span>form.<span class="f">addEventListener</span>(<span class="s">"submit"</span>, (e) => {
+  e.<span class="f">preventDefault</span>();
+  <span class="k">const</span> nombre = form.elements.nombre.value.<span class="f">trim</span>();
+  <span class="k">const</span> email = form.elements.email.value.<span class="f">trim</span>();
+  <span class="k">const</span> errores = [];
+
+  <span class="k">if</span> (nombre.length &lt; <span class="n">3</span>) errores.<span class="f">push</span>(<span class="s">"Nombre corto"</span>);
+  <span class="k">if</span> (!email.<span class="f">includes</span>(<span class="s">"@"</span>)) errores.<span class="f">push</span>(<span class="s">"Email inválido"</span>);
+
+  <span class="k">if</span> (errores.length > <span class="n">0</span>) {
+    mensaje.textContent = errores.<span class="f">join</span>(<span class="s">" · "</span>);
+    <span class="k">return</span>; <span class="c">// detenemos aquí</span>
+  }
+  <span class="f">enviar</span>({ nombre, email }); <span class="c">// fetch de la clase 3</span>
+});</pre>
+      <ul class="list small">
+        <li><code>trim()</code> quita espacios al inicio y al final</li>
+        <li>Acumulamos los errores en un <b>array</b></li>
+        <li><code>return</code> corta la función si algo falla</li>
+        <li>Si todo está bien → enviamos con <code>fetch</code></li>
+      </ul>
+    </div>
+    <div class="notes">Todo lo aprendido se junta aquí: arrays y join (clase 2), funciones y return (clase 2), fetch (clase 3), eventos (hoy). Importante: la validación en el navegador mejora la experiencia, pero el servidor siempre debe validar de nuevo.</div>
+  </section>
+
+  <!-- 14. Iniciando el tres en raya -->
+  <section class="slide">
+    <div class="kicker">Ejemplo integrador · Tres en raya</div>
+    <h2>Iniciando el juego del tres en raya</h2>
+    <div class="grid-2" style="grid-template-columns:1fr auto;gap:32px">
+      <pre class="xs" style="font-size:14px;line-height:1.5;font-variant-ligatures:none"><span class="t">Atributos data-* + eventos</span><span class="c">// HTML: 9 botones, cada uno con su fila y columna</span>
+<span class="c">// &lt;button data-row="1" data-col="1"&gt;&lt;/button&gt;</span>
+
+<span class="c">// 1. Obtener un elemento por sus atributos data-*</span>
+<span class="k">const</span> centro = document.<span class="f">querySelector</span>(<span class="s">'[data-row="1"][data-col="1"]'</span>);
+<span class="c">// 2. Asignarle un evento</span>
+centro.<span class="f">addEventListener</span>(<span class="s">"click"</span>, () => {
+  <span class="f">console</span>.<span class="f">log</span>(<span class="s">"Clic en el centro"</span>);
+});
+<span class="c">// 3. Todas las celdas: leer sus valores con dataset</span>
+<span class="k">let</span> turno = <span class="s">"X"</span>;
+document.<span class="f">querySelectorAll</span>(<span class="s">"[data-row]"</span>).<span class="f">forEach</span>((celda) => {
+  celda.<span class="f">addEventListener</span>(<span class="s">"click"</span>, () => {
+    <span class="f">console</span>.<span class="f">log</span>(celda.dataset.row, celda.dataset.col); <span class="c">// "1" "1"</span>
+    celda.textContent = turno;
+    turno = turno === <span class="s">"X"</span> ? <span class="s">"O"</span> : <span class="s">"X"</span>;
+  });
+});</pre>
+      <div>
+        <div class="board sm coords" aria-hidden="true" style="justify-content:start;margin-bottom:14px">
+          <span class="x"><small>0,0</small>X</span><span class="o"><small>0,1</small>O</span><span><small>0,2</small></span>
+          <span><small>1,0</small></span><span class="x"><small>1,1</small>X</span><span><small>1,2</small></span>
+          <span><small>2,0</small></span><span><small>2,1</small></span><span><small>2,2</small></span>
+        </div>
+        <p class="small muted" style="font-size:16px;margin-bottom:18px"><code>row</code>,<code>col</code> de cada casilla</p>
+        <p class="small muted" style="font-size:16px;margin-bottom:8px">Próxima clase:</p>
+        <div class="chips">
+          <span class="chip">ganador</span><span class="chip">empate</span><span class="chip">reiniciar</span>
+        </div>
+      </div>
+    </div>
+    <div class="notes">Los atributos data-* guardan información propia en el HTML. data-row y data-col indican la posición de cada casilla. Para obtener un elemento por esos atributos usamos un selector de atributo: '[data-row="1"][data-col="1"]' (comillas simples afuera, dobles adentro). En JS se leen con dataset: data-row → celda.dataset.row. Ojo: siempre llegan como texto ("1"); si necesitamos número, Number(celda.dataset.row). Construirlo en vivo y ver en consola qué fila y columna se clicó. La próxima clase usamos row y col para detectar al ganador.</div>
+  </section>
+
+  <div class="footer"><span>Clase 4 · Formularios y eventos</span><span id="counter"></span></div>
+  <div id="progress"></div>
+</div>
+</div>
+
+<div id="notes-panel"><div class="h"><span>Notas del orador</span><span id="clock">00:00</span></div><div id="notes-text"></div></div>
+<div id="hud">
+  <button id="btn-notes" title="Notas (N)">Notas</button>
+  <button id="btn-full" title="Pantalla completa (F)">⛶</button>
+  <button id="btn-prev" title="Anterior (←)">←</button>
+  <button id="btn-next" title="Siguiente (→)">→</button>
+</div>
+
+<script>
+  const slides = [...document.querySelectorAll(".slide")];
+  const stage = document.getElementById("stage");
+  const counter = document.getElementById("counter");
+  const progress = document.getElementById("progress");
+  const notesPanel = document.getElementById("notes-panel");
+  const notesText = document.getElementById("notes-text");
+  const clock = document.getElementById("clock");
+  let current = 0;
+  let startTime = null;
+
+  function fit() {
+    const s = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+    stage.style.transform = `scale(${s})`;
+  }
+
+  function show(i) {
+    current = Math.max(0, Math.min(slides.length - 1, i));
+    slides.forEach((el, idx) => {
+      el.classList.toggle("active", idx === current);
+      el.classList.toggle("prev", idx < current);
+    });
+    counter.textContent = `${current + 1} / ${slides.length}`;
+    progress.style.width = `${((current + 1) / slides.length) * 100}%`;
+    const n = slides[current].querySelector(".notes");
+    notesText.textContent = n ? n.textContent : "";
+    history.replaceState(null, "", `#${current + 1}`);
+    if (current > 0 && !startTime) startTime = Date.now();
+  }
+
+  function tick() {
+    if (!startTime) return;
+    const sec = Math.floor((Date.now() - startTime) / 1000);
+    clock.textContent = `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
+  }
+
+  function toggleFull() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+    else document.exitFullscreen?.();
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (["ArrowRight", "PageDown", " ", "Enter"].includes(e.key)) { e.preventDefault(); show(current + 1); }
+    else if (["ArrowLeft", "PageUp", "Backspace"].includes(e.key)) { e.preventDefault(); show(current - 1); }
+    else if (e.key === "Home") show(0);
+    else if (e.key === "End") show(slides.length - 1);
+    else if (e.key.toLowerCase() === "n") notesPanel.classList.toggle("open");
+    else if (e.key.toLowerCase() === "f") toggleFull();
+  });
+
+  let touchX = null;
+  document.addEventListener("touchstart", (e) => { touchX = e.touches[0].clientX; }, { passive: true });
+  document.addEventListener("touchend", (e) => {
+    if (touchX === null) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    if (Math.abs(dx) > 40) show(current + (dx < 0 ? 1 : -1));
+    touchX = null;
+  });
+
+  document.getElementById("btn-next").onclick = () => show(current + 1);
+  document.getElementById("btn-prev").onclick = () => show(current - 1);
+  document.getElementById("btn-notes").onclick = () => notesPanel.classList.toggle("open");
+  document.getElementById("btn-full").onclick = toggleFull;
+
+  window.addEventListener("resize", fit);
+  setInterval(tick, 1000);
+  fit();
+  show((parseInt(location.hash.slice(1), 10) || 1) - 1);
+</script>
+</body>
+</html>
