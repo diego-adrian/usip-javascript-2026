@@ -2,7 +2,11 @@
 const nombre = "Ana";
 let edad = 20;
 var globalVar = "Hola soy global";
-edad = 21;        // OK: let cambia
+edad = 21;  
+
+function getLocalCharacters() {
+  console.log("Fetching local characters");
+}// OK: let cambia
 
 // nombre = "Luis";  // Error: TypeError
 // Assignment to constant variable
